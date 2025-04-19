@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>os.korze.org</title>
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/window-system.css">
+    <link rel="stylesheet" href="styles/apps.css">
+    <link rel="stylesheet" href="styles/desktop.css">
+</head>
+<body>
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-bar-left">
+            <div class="menu-bar-logo">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                    <circle fill="white" cx="12" cy="12" r="5"/>
+                </svg>
+            </div>
+            <div class="menu-item app-name"></div>
+            <div class="menu-item">File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Window</div>
+        </div>
+        <div class="menu-bar-right">
+            <div class="menu-status-item" id="current-time">00:00 AM</div>
+            <div class="menu-status-item" id="battery-status">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="white" d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/>
+                    <path fill="white" d="M13 18h-2v-6h2v6z" opacity="0.8"/>
+                </svg>
+            </div>
+            <div class="menu-status-item" id="wifi-status">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="white" d="M12 6c4.14 0 7.88 1.68 10.59 4.39L24 8.98C20.93 5.9 16.69 4 12 4S3.07 5.9 0 8.98L1.41 10.39C4.12 7.68 7.86 6 12 6z"/>
+                    <path fill="white" d="M12 10c2.76 0 5.26 1.12 7.07 2.93l1.41-1.41C18.54 9.58 15.44 8 12 8s-6.54 1.58-8.48 3.52l1.41 1.41C6.74 11.12 9.24 10 12 10z"/>
+                    <path fill="white" d="M12 14c1.38 0 2.63.56 3.53 1.47l1.41-1.41c-1.26-1.26-3-2.06-4.94-2.06s-3.68.79-4.94 2.06l1.41 1.41c.9-.91 2.15-1.47 3.53-1.47z"/>
+                    <circle fill="white" cx="12" cy="18" r="2"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Desktop files container -->
+    <div id="desktop-files"></div>
+    
+    <div class="window-container terminal-container minimized" id="terminal">
+        <div class="window-header terminal-header">
+            <div class="window-controls terminal-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title terminal-title">Terminal</div>
+        </div>
+        <div class="terminal-content window-content">
+            <div id="output" class="terminal-output">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="terminal-prompt">
+                <span class="prompt-symbol">/home/user $</span>
+                <input type="text" id="command-input" autofocus>
+            </div>
+        </div>
+        <div class="resize-handle" id="terminal-resize-handle"></div>
+    </div>
+    
+    <!-- Mac-style Dock -->
+    <div class="dock-container">
+        <div class="dock">
+            <div class="dock-item terminal-dock-icon" id="terminal-dock-icon">
+                <img src="img/app-terminal.png" alt="Terminal">
+            </div>
+            <div class="dock-item browser-dock-icon" id="browser-dock-icon">
+                <img src="img/icons/browser-icon.png" alt="Browser">
+            </div>
+            <div class="dock-item mail-dock-icon" id="mail-dock-icon">
+                <img src="img/app-mail.png" alt="Mail">
+            </div>
+            <div class="dock-item pdf-viewer-dock-icon" id="pdf-viewer-dock-icon">
+                <img src="img/icons/pdf-icon.svg" alt="File Viewer">
+            </div>
+            <div class="dock-item settings-dock-icon" id="settings-dock-icon">
+                <img src="img/icons/settings-icon.svg" alt="Settings">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Browser window -->
+    <div class="window-container browser-container minimized" id="browser">
+        <div class="window-header browser-header">
+            <div class="window-controls browser-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title browser-title">Browser</div>
+        </div>
+        
+        <div class="browser-toolbar">
+            <div class="browser-navigation">
+                <button class="nav-button back-button" disabled>←</button>
+                <button class="nav-button forward-button" disabled>→</button>
+                <button class="nav-button refresh-button">↻</button>
+            </div>
+            <div class="address-bar">
+                <input type="text" id="url-input" placeholder="Enter URL">
+            </div>
+        </div>
+        
+        <div class="browser-content window-content">
+            <div id="browser-display">
+                <div class="browser-home">
+                    <h2>Browser Home</h2>
+                    <p>Enter a URL in the address bar or choose from the bookmarks below:</p>
+                    <div class="bookmarks">
+                        <div class="bookmark" data-url="https://github.com">GitHub</div>
+                        <div class="bookmark" data-url="https://google.com">Google</div>
+                        <div class="bookmark" data-url="https://developer.mozilla.org">MDN</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="resize-handle" id="browser-resize-handle"></div>
+    </div>
+    
+    <!-- Mail window -->
+    <div class="window-container mail-container minimized" id="mail">
+        <div class="window-header mail-header">
+            <div class="window-controls mail-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title mail-title">Mail</div>
+        </div>
+        
+        <div class="mail-content window-content">
+            <div id="mail-status" class="mail-status-area"></div>
+            
+            <form id="compose-form" class="compose-area">
+                <div class="form-header">
+                    <div class="form-row">
+                        <label for="recipient">To:</label>
+                        <input type="email" id="recipient" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="subject">Subject:</label>
+                        <input type="text" id="subject" placeholder="Enter subject here" required>
+                    </div>
+                </div>
+                
+                <textarea id="message-body" placeholder="Write your message here..."></textarea>
+                
+                <div class="form-footer">
+                    <button type="submit" id="send-email" class="send-button">Send Email</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="resize-handle" id="mail-resize-handle"></div>
+    </div>
+    
+    <!-- PDF Viewer window -->
+    <div class="window-container pdf-viewer-container minimized" id="pdf-viewer">
+        <div class="window-header pdf-viewer-header">
+            <div class="window-controls pdf-viewer-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title pdf-viewer-title">PDF Viewer</div>
+        </div>
+        
+        <div class="pdf-viewer-content window-content">
+            <!-- PDF content will be populated by JavaScript -->
+        </div>
+        
+        <div class="resize-handle" id="pdf-viewer-resize-handle"></div>
+    </div>
+    
+    <!-- Settings window -->
+    <div class="window-container settings-container minimized" id="settings">
+        <div class="window-header settings-header">
+            <div class="window-controls settings-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title settings-title">System Preferences</div>
+        </div>
+        
+        <div class="settings-content window-content">
+            <div class="settings-sidebar">
+                <div class="settings-category active" data-panel="appearance-panel">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/>
+                        <path fill="currentColor" d="M12 17c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5z"/>
+                    </svg>
+                    <span>Appearance</span>
+                </div>
+                <div class="settings-category" data-panel="desktop-panel">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/>
+                    </svg>
+                    <span>Desktop</span>
+                </div>
+                <div class="settings-category" data-panel="about-panel">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-11h2V7h-2v2z"/>
+                    </svg>
+                    <span>About</span>
+                </div>
+            </div>
+            
+            <div class="settings-panels">
+                <!-- Appearance Panel -->
+                <div id="appearance-panel" class="settings-panel active">
+                    <h2>Appearance</h2>
+                    
+                    <div class="settings-group">
+                        <h3>Theme</h3>
+                        <div class="setting-item">
+                            <label for="theme-toggle" class="toggle-label">
+                                <span>Dark Mode</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="theme-toggle">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text-on">Light</span>
+                                    <span class="toggle-text-off">Dark</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <h3>Font Size</h3>
+                        <div class="setting-item">
+                            <label for="font-size-slider">UI Font Size</label>
+                            <input type="range" id="font-size-slider" min="12" max="18" value="13">
+                            <span id="font-size-value">13px</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Desktop Panel -->
+                <div id="desktop-panel" class="settings-panel">
+                    <h2>Desktop</h2>
+                    
+                    <div class="settings-group">
+                        <h3>Background</h3>
+                        <div class="background-options">
+                            <div class="background-option selected" data-bg="img/wallpapers/default.jpg">
+                                <img src="img/wallpapers/default-thumb.jpg" alt="Default">
+                                <span>Default</span>
+                            </div>
+                            <div class="background-option" data-bg="img/wallpapers/mountains.jpg">
+                                <img src="img/wallpapers/mountains-thumb.jpg" alt="Mountains">
+                                <span>Mountains</span>
+                            </div>
+                            <div class="background-option" data-bg="img/wallpapers/abstract.jpg">
+                                <img src="img/wallpapers/abstract-thumb.jpg" alt="Abstract">
+                                <span>Abstract</span>
+                            </div>
+                            <div class="background-option" data-bg="img/wallpapers/space.jpg">
+                                <img src="img/wallpapers/space-thumb.jpg" alt="Space">
+                                <span>Space</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- About Panel -->
+                <div id="about-panel" class="settings-panel">
+                    <div class="about-content">
+                        <div class="about-logo">
+                            <svg width="80" height="80" viewBox="0 0 24 24">
+                                <path fill="#333" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                                <circle fill="#333" cx="12" cy="12" r="5"/>
+                            </svg>
+                        </div>
+                        <h2>korzeOS</h2>
+                        <p class="version">Version 1.0</p>
+                        <p class="description">A web-based operating system simulation</p>
+                        <p>Created by <a href="https://korze.org" target="_blank">Korze</a></p>
+                        
+                        <div class="system-info">
+                            <h3>System Information</h3>
+                            <div class="info-row">
+                                <span class="info-label">Browser:</span>
+                                <span class="info-value" id="browser-info">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Screen Resolution:</span>
+                                <span class="info-value" id="resolution-info">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Memory:</span>
+                                <span class="info-value">Simulated 16GB</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Storage:</span>
+                                <span class="info-value">Simulated 512GB SSD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="resize-handle" id="settings-resize-handle"></div>
+    </div>
+    
+    <!-- About window -->
+    <div class="window-container about-container minimized" id="about">
+        <div class="window-header about-header">
+            <div class="window-controls about-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title about-title">About This System</div>
+        </div>
+        
+        <div class="about-content window-content">
+            <div class="about-system-info">
+                <div class="about-logo">
+                    <svg width="80" height="80" viewBox="0 0 24 24">
+                        <path fill="#333" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                        <circle fill="#333" cx="12" cy="12" r="5"/>
+                    </svg>
+                </div>
+                
+                <h2>korzeOS</h2>
+                <p class="about-version">Version 1.0</p>
+                <p class="about-tagline">A web-based operating system simulation</p>
+                
+                <div class="about-specs">
+                    <div class="about-spec-item">
+                        <div class="about-spec-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="#666" d="M22 3H2C.9 3 0 3.9 0 5v14c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H2V5h20v14z"/>
+                                <path fill="#666" d="M11 7h2v10h-2z"/>
+                                <path fill="#666" d="M7 7h2v10H7z"/>
+                                <path fill="#666" d="M15 7h2v10h-2z"/>
+                            </svg>
+                        </div>
+                        <div class="about-spec-detail">
+                            <div class="about-spec-label">Memory</div>
+                            <div class="about-spec-value">16 GB</div>
+                        </div>
+                    </div>
+                    
+                    <div class="about-spec-item">
+                        <div class="about-spec-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="#666" d="M12 6C5.4 6 0 9.13 0 13s5.4 7 12 7 12-3.13 12-7-5.4-7-12-7zm-7 7c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm14 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-7 3c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                            </svg>
+                        </div>
+                        <div class="about-spec-detail">
+                            <div class="about-spec-label">Processor</div>
+                            <div class="about-spec-value">Virtual Core i7</div>
+                        </div>
+                    </div>
+                    
+                    <div class="about-spec-item">
+                        <div class="about-spec-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="#666" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                            </svg>
+                        </div>
+                        <div class="about-spec-detail">
+                            <div class="about-spec-label">Storage</div>
+                            <div class="about-spec-value">512 GB SSD</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="about-system-details">
+                    <h3>System Details</h3>
+                    <div class="about-detail-row">
+                        <div class="about-detail-label">Browser:</div>
+                        <div class="about-detail-value" id="about-browser-info">-</div>
+                    </div>
+                    <div class="about-detail-row">
+                        <div class="about-detail-label">Screen Resolution:</div>
+                        <div class="about-detail-value" id="about-resolution-info">-</div>
+                    </div>
+                    <div class="about-detail-row">
+                        <div class="about-detail-label">Date & Time:</div>
+                        <div class="about-detail-value" id="about-date-info">-</div>
+                    </div>
+                    <div class="about-detail-row">
+                        <div class="about-detail-label">System Name:</div>
+                        <div class="about-detail-value">korzeOS</div>
+                    </div>
+                </div>
+                
+                <div class="about-footer">
+                    <p>Created by <a href="https://korze.org" target="_blank">Korze</a></p>
+                    <p>© 2023 Korze. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="resize-handle" id="about-resize-handle"></div>
+    </div>
+    
+    <script type="module" src="js/script.js"></script>
+</body>
+</html> 

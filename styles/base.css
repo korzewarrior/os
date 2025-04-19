@@ -1,0 +1,59 @@
+/* Base styles and CSS variables */
+:root {
+  /* Color variables */
+  --window-bg-dark: #1e1e1e;
+  --window-bg-light: #f8f8f8;
+  --header-height-tall: 40px;
+  --header-height-short: 30px;
+  --control-red: #ff5f56;
+  --control-yellow: #ffbd2e;
+  --control-green: #27c93f;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --border-radius: 6px;
+  --text-dark: #333;
+  --text-light: #f0f0f0;
+}
+
+/* Global styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background-image: url('../img/wallpapers/gradient.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--text-dark);
+}
+
+/* Common text styles */
+h2, h3, h4 {
+  margin-bottom: 10px;
+}
+
+ul {
+  list-style-type: none;
+  padding-left: 10px;
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+/* Utility classes */
+.hidden {
+  display: none;
+}
+
+/* Animation keyframes */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes loading {
+  0%, 80%, 100% { transform: scale(0); opacity: 0; }
+  40% { transform: scale(1); opacity: 1; }
+} 

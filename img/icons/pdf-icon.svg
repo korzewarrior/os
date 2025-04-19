@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#E74C3C" x="6" y="4" width="36" height="40" rx="2"></rect>
+        <path d="M12,4 L36,4 L36,44 L12,44 L12,4 Z" fill="#C0392B"></path>
+        <rect fill="white" x="10" y="8" width="28" height="32" rx="1"></rect>
+        <g transform="translate(12, 14)" fill="#E74C3C" font-family="Arial-BoldMT, Arial" font-size="12" font-weight="bold">
+            <text>
+                <tspan x="4" y="10">PDF</tspan>
+            </text>
+        </g>
+        <g transform="translate(14, 26)">
+            <rect fill="#E74C3C" x="0" y="0" width="20" height="2"></rect>
+            <rect fill="#E74C3C" x="0" y="4" width="20" height="2"></rect>
+            <rect fill="#E74C3C" x="0" y="8" width="16" height="2"></rect>
+        </g>
+        <path d="M30,2 L42,14 L30,14 z" fill="#C0392B" transform="translate(36, 8) rotate(90) translate(-36, -8)"></path>
+    </g>
+</svg> 

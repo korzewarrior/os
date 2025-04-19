@@ -286,12 +286,37 @@
     height: 100%;
 }
 
+/* Logo menu styling */
 .menu-bar-logo {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0 8px;
     margin-right: 4px;
+    height: 100%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.menu-bar-logo:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.menu-bar-logo.active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.menu-bar-logo .menu-dropdown {
+    left: 0;
+    display: none;
+    position: absolute;
+    top: 24px;
+    z-index: 2000;
+}
+
+.menu-bar-logo.active .menu-dropdown {
+    display: block !important;
 }
 
 .menu-item {
@@ -333,7 +358,13 @@
     margin-top: 3px;
 }
 
-.menu-item.active .menu-dropdown {
+/* Logo-specific dropdown positioning */
+.menu-bar-logo .menu-dropdown {
+    left: 0;
+}
+
+.menu-item.active .menu-dropdown,
+.menu-bar-logo.active .menu-dropdown {
     display: block;
 }
 
@@ -381,4 +412,441 @@
     .menu-status-item:not(#current-time) {
         display: none;
     }
+}
+
+/* Settings Window Styling */
+.settings-container {
+    width: 700px; 
+    height: 500px;
+    background-color: #fff;
+    color: #333;
+}
+
+.settings-container.minimized {
+    display: none !important;
+}
+
+.settings-header {
+    border-bottom: 1px solid #ddd;
+}
+
+.settings-title {
+    color: #333;
+}
+
+.settings-content {
+    display: flex;
+    height: calc(100% - 30px);
+    overflow: hidden;
+}
+
+.settings-sidebar {
+    width: 200px;
+    border-right: 1px solid #eee;
+    padding: 15px 0;
+    background-color: #f5f5f5;
+    overflow-y: auto;
+}
+
+.settings-category {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #555;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.settings-category svg {
+    margin-right: 10px;
+}
+
+.settings-category:hover {
+    background-color: #eee;
+}
+
+.settings-category.active {
+    background-color: #ddd;
+    border-left-color: #888;
+    color: #333;
+}
+
+.settings-panels {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.settings-panel {
+    display: none;
+}
+
+.settings-panel.active {
+    display: block;
+}
+
+.settings-panel h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.settings-group {
+    margin-bottom: 30px;
+}
+
+.settings-group h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #555;
+}
+
+.setting-item {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.setting-item label {
+    margin-right: 15px;
+    min-width: 120px;
+    color: #444;
+}
+
+/* Toggle switch styling */
+.toggle-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #2196F3;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(30px);
+}
+
+.toggle-text-on,
+.toggle-text-off {
+    position: absolute;
+    font-size: 10px;
+    color: white;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.toggle-text-on {
+    left: 8px;
+    opacity: 0;
+}
+
+.toggle-text-off {
+    right: 8px;
+    opacity: 1;
+}
+
+input:checked ~ .toggle-text-on {
+    opacity: 1;
+}
+
+input:checked ~ .toggle-text-off {
+    opacity: 0;
+}
+
+/* Wallpaper selection styles */
+.background-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.background-option {
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100px;
+    width: 100%;
+}
+
+.background-option:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.background-option.selected {
+    outline: 3px solid #4a90e2;
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+}
+
+.background-option img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.background-option span {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 4px 8px;
+    font-size: 12px;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+/* About panel styling */
+.about-content {
+    text-align: center;
+    padding: 20px;
+}
+
+.about-logo {
+    margin-bottom: 15px;
+}
+
+.about-content h2 {
+    margin: 10px 0;
+    border-bottom: none;
+}
+
+.version {
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.description {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.system-info {
+    text-align: left;
+    margin-top: 40px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.info-label {
+    font-weight: bold;
+    width: 150px;
+    color: #555;
+}
+
+.info-value {
+    color: #777;
+}
+
+/* About Window */
+.about-container {
+    width: 600px;
+    min-width: 400px;
+    height: 550px;
+    min-height: 400px;
+    background-color: var(--window-bg);
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    z-index: 100;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.about-header {
+    background-color: var(--window-header-bg);
+    height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    position: relative;
+    z-index: 1;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.about-title {
+    flex-grow: 1;
+    text-align: center;
+    font-size: 14px;
+    color: var(--window-title-color);
+    margin-left: -60px; /* Offset the controls */
+}
+
+.about-content {
+    padding: 20px;
+    height: calc(100% - 38px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.about-system-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.about-logo {
+    margin-bottom: 15px;
+}
+
+.about-system-info h2 {
+    margin: 5px 0;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.about-version {
+    margin: 5px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.about-tagline {
+    margin: 5px 0 25px;
+    color: #666;
+    font-size: 16px;
+}
+
+.about-specs {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+.about-spec-item {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    min-width: 150px;
+}
+
+.about-spec-icon {
+    margin-right: 10px;
+}
+
+.about-spec-detail {
+    display: flex;
+    flex-direction: column;
+}
+
+.about-spec-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.about-spec-value {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.about-system-details {
+    width: 100%;
+    margin-top: 20px;
+    padding: 0 10px;
+}
+
+.about-system-details h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.about-detail-row {
+    display: flex;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.about-detail-label {
+    min-width: 150px;
+    color: #666;
+}
+
+.about-detail-value {
+    flex-grow: 1;
+    font-weight: 500;
+}
+
+.about-footer {
+    margin-top: 30px;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+}
+
+.about-footer a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.about-footer a:hover {
+    text-decoration: underline;
 } 
