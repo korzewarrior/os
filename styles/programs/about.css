@@ -2,9 +2,9 @@
 .about-container {
     display: flex;
     flex-direction: column;
-    background-color: #f8f8f8;
-    color: #333;
-    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: var(--window-bg);
+    color: var(--text-primary);
+    font-family: var(--font-primary);
     overflow: hidden;
     width: 100%;
     height: 100%;
@@ -36,20 +36,20 @@
 }
 
 .about-title {
-    font-size: 24px;
+    font-size: calc(var(--base-font-size) * 1.85);
     font-weight: 600;
     margin: 0;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .about-version {
-    font-size: 16px;
+    font-size: calc(var(--base-font-size) * 1.23);
     color: #666;
     margin: 4px 0;
 }
 
 .about-description {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 1.08);
     color: #666;
     margin: 8px 0 24px;
     max-width: 480px;
@@ -67,7 +67,7 @@
 }
 
 .system-info-section h2 {
-    font-size: 18px;
+    font-size: calc(var(--base-font-size) * 1.38);
     margin: 0 0 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eee;
@@ -89,7 +89,7 @@
 }
 
 .info-group h3 {
-    font-size: 15px;
+    font-size: calc(var(--base-font-size) * 1.15);
     margin: 0 0 12px;
     padding-bottom: 6px;
     border-bottom: 1px solid #eee;
@@ -100,7 +100,7 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: var(--base-font-size);
 }
 
 .info-label {
@@ -145,13 +145,13 @@
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.92);
     color: #666;
 }
 
 .stat-value {
     font-weight: 500;
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 1.08);
     color: #333;
 }
 
@@ -159,7 +159,7 @@
 .about-footer {
     padding: 16px;
     text-align: center;
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.92);
     background-color: #f0f0f0;
     border-top: 1px solid #ddd;
     color: #777;
@@ -191,4 +191,10 @@
         align-items: center;
         gap: 16px;
     }
+}
+
+/* About header */
+.about-header {
+    background-color: var(--window-header-bg);
+    border-bottom: 1px solid var(--window-header-border);
 } 

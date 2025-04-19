@@ -85,14 +85,13 @@ export class Program {
             document.body.appendChild(windowElement);
         }
         
-        // Setup window manager
-        this.windowManager = createWindowManager(this.id, {
-            title: this.title,
-            initialWidth: `${this.width}px`,
-            initialHeight: `${this.height}px`,
-            minimized: false
-        });
-        
+        // Retrieve the existing window manager instance created in script.js
+        this.windowManager = window.windowManagers ? window.windowManagers[this.id] : null;
+        if (!this.windowManager) {
+             console.error(`[Program ${this.id}] Could not find pre-initialized WindowManager in global registry.`);
+             // Optionally handle this error, maybe prevent further initialization?
+        }
+
         // Store reference to content area
         this.windowContent = windowElement.querySelector('.window-content');
         
@@ -100,7 +99,8 @@ export class Program {
         this.isInitialized = true;
         
         // Show the window
-        this.show();
+        // REMOVED: this.show();
+        // Window should be shown via dock icon click / WindowManager
     }
     
     /**
@@ -169,36 +169,30 @@ export class Program {
      * Show the program window
      */
     show() {
-        if (!this.windowManager) return;
-        
-        const element = document.getElementById(this.id);
-        if (element) {
-            element.classList.remove('minimized');
-            
-            // Activate dock icon if exists
-            const dockIcon = document.getElementById(`${this.id}-dock-icon`);
-            if (dockIcon) {
-                dockIcon.classList.add('active');
-            }
+        // Now this.windowManager should be correctly set if init() ran successfully
+        if (!this.windowManager) {
+            console.error(`[Program ${this.id}] Show called but windowManager is not set.`);
+            return;
         }
+        
+        this.windowManager.show(); 
+
+        // Removed redundant DOM manipulation here, rely on WindowManager.show()
     }
     
     /**
      * Hide/minimize the program window
      */
     hide() {
-        if (!this.windowManager) return;
-        
-        const element = document.getElementById(this.id);
-        if (element) {
-            element.classList.add('minimized');
-            
-            // Deactivate dock icon if exists
-            const dockIcon = document.getElementById(`${this.id}-dock-icon`);
-            if (dockIcon) {
-                dockIcon.classList.remove('active');
-            }
+        // Now this.windowManager should be correctly set if init() ran successfully
+        if (!this.windowManager) {
+            console.error(`[Program ${this.id}] Hide called but windowManager is not set.`);
+            return;
         }
+        
+        this.windowManager.minimize(); 
+
+        // Removed redundant DOM manipulation here, rely on WindowManager.minimize()
     }
     
     /**

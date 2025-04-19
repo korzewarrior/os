@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>os.korze.org</title>
+    <link rel="stylesheet" href="fonts/satoshi.css">
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/window-system.css">
     <link rel="stylesheet" href="styles/apps.css">
     <link rel="stylesheet" href="styles/desktop.css">
+    <link rel="stylesheet" href="styles/fixes.css">
 </head>
 <body>
     <!-- Menu Bar -->
@@ -81,10 +83,13 @@
                 <img src="img/app-mail.png" alt="Mail">
             </div>
             <div class="dock-item pdf-viewer-dock-icon" id="pdf-viewer-dock-icon">
-                <img src="img/icons/pdf-icon.svg" alt="File Viewer">
+                <img src="img/icons/pdf-icon.svg" alt="PDF Viewer">
             </div>
             <div class="dock-item settings-dock-icon" id="settings-dock-icon">
                 <img src="img/icons/settings-icon.svg" alt="Settings">
+            </div>
+            <div class="dock-item" id="text-editor-dock-icon">
+                <img src="img/icons/document-icon.svg" alt="Text Editor">
             </div>
         </div>
     </div>
@@ -146,6 +151,11 @@
                     <div class="form-row">
                         <label for="recipient">To:</label>
                         <input type="email" id="recipient" required>
+                        <button type="submit" class="send-button-inline" title="Send Email">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="form-row">
                         <label for="subject">Subject:</label>
@@ -312,6 +322,24 @@
         </div>
         
         <div class="resize-handle" id="settings-resize-handle"></div>
+    </div>
+    
+    <!-- Text Editor window -->
+    <div class="window-container text-editor-container minimized" id="text-editor">
+        <div class="window-header text-editor-header">
+            <div class="window-controls text-editor-controls">
+                <span class="control red"></span>
+                <span class="control yellow"></span>
+                <span class="control green"></span>
+            </div>
+            <div class="window-title text-editor-title">Text Editor</div>
+        </div>
+        
+        <div class="text-editor-content window-content">
+            <!-- Content will be populated by JavaScript (text-editor.js) -->
+        </div>
+        
+        <div class="resize-handle" id="text-editor-resize-handle"></div>
     </div>
     
     <!-- About window -->

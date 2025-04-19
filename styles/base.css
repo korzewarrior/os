@@ -1,36 +1,103 @@
 /* Base styles and CSS variables */
 :root {
-  /* Color variables */
-  --window-bg-dark: #1e1e1e;
-  --window-bg-light: #f8f8f8;
-  --header-height-tall: 40px;
-  --header-height-short: 30px;
+  /* System color variables */
   --control-red: #ff5f56;
   --control-yellow: #ffbd2e;
   --control-green: #27c93f;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  
+  /* Layout variables */
+  --header-height-tall: 40px;
+  --header-height-short: 30px;
   --border-radius: 6px;
+  
+  /* Font variables */
+  --base-font-size: 13px; /* Default font size that can be changed by the slider */
+  --font-primary: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-monospace: 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  
+  /* Default theme (light) */
+  --window-bg: #f8f8f8;
+  --window-bg-alt: #ffffff;
+  --window-header-bg: #e0e0e0;
+  --window-header-border: #d0d0d0;
+  --window-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --window-shadow-focused: 0 12px 40px rgba(0, 0, 0, 0.5);
+  
+  --text-primary: #333;
+  --text-secondary: #666;
+  --text-muted: #888;
+  
+  --element-bg: #f0f0f0;
+  --element-border: #ddd;
+  --element-hover: #e0e0e0;
+  --element-active: #d0d0d0;
+  
+  --scrollbar-thumb: rgba(100, 100, 100, 0.4);
+  --scrollbar-thumb-hover: rgba(100, 100, 100, 0.6);
+  
+  --dock-bg: rgba(255, 255, 255, 0.2);
+  --dock-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  --dock-backdrop: blur(10px);
+  
+  --menu-bar-bg: rgba(32, 32, 32, 0.8);
+  --menu-text: #fff;
+  --menu-hover: rgba(255, 255, 255, 0.1);
+  
+  /* Alias for backward compatibility */
+  --window-bg-dark: #1e1e1e;
+  --window-bg-light: #f8f8f8;
   --text-dark: #333;
   --text-light: #f0f0f0;
+}
+
+/* Dark theme overrides */
+body.dark-theme {
+  --window-bg: #1e1e1e;
+  --window-bg-alt: #262626;
+  --window-header-bg: #303030;
+  --window-header-border: #404040;
+  --window-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --window-shadow-focused: 0 12px 40px rgba(0, 0, 0, 0.7);
+  
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  
+  --element-bg: #3a3a3a;
+  --element-border: #4a4a4a;
+  --element-hover: #444444;
+  --element-active: #505050;
+  
+  --scrollbar-thumb: rgba(200, 200, 200, 0.4);
+  --scrollbar-thumb-hover: rgba(200, 200, 200, 0.6);
+  
+  --dock-bg: rgba(0, 0, 0, 0.3);
+  --dock-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
 }
 
 /* Global styles */
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-primary);
   background-image: url('../img/wallpapers/gradient.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   height: 100vh;
   overflow: hidden;
-  color: var(--text-dark);
+  color: var(--text-primary);
+  transition: color 0.3s ease, font-size 0.3s ease;
+  font-weight: 400;
+  font-size: var(--base-font-size);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 /* Common text styles */
 h2, h3, h4 {
   margin-bottom: 10px;
+  color: var(--text-primary);
 }
 
 ul {
@@ -40,6 +107,65 @@ ul {
 
 li {
   margin-bottom: 10px;
+}
+
+a {
+  color: #0066cc;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+body.dark-theme a {
+  color: #5599ff;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Form elements */
+input, textarea, select, button {
+  font-family: var(--font-primary);
+  font-size: inherit;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, font-size 0.3s ease;
+}
+
+/* Font size relationships */
+h1, .text-xl {
+  font-size: calc(var(--base-font-size) * 1.5);
+}
+
+h2, .text-lg {
+  font-size: calc(var(--base-font-size) * 1.3);
+}
+
+h3, .text-md {
+  font-size: calc(var(--base-font-size) * 1.15);
+}
+
+h4, .text-sm {
+  font-size: calc(var(--base-font-size) * 1.05);
+}
+
+.text-xs {
+  font-size: calc(var(--base-font-size) * 0.85);
+}
+
+/* Scale window title sizes */
+.window-title {
+  font-size: calc(var(--base-font-size) * 0.95);
+}
+
+/* Menu items and dock items */
+.menu-item,
+.menu-status-item {
+  font-size: var(--base-font-size);
+}
+
+/* Context menu items */
+.dropdown-item,
+.context-menu-item {
+  font-size: calc(var(--base-font-size) * 0.95);
 }
 
 /* Utility classes */

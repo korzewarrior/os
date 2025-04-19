@@ -1,7 +1,8 @@
 // Desktop management system
 // Responsible for initializing desktop, adding file icons, and handling file interactions
 import { createWindowManager } from './window-manager.js';
-import { openPdfFile, openTextFile } from './programs/file-viewer.js';
+import { openPdfFile, openTextFile } from './programs/pdf-viewer.js';
+import { openTextEditor } from './programs/text-editor.js';
 
 // Track which files are on the desktop
 let desktopFiles = [];
@@ -109,7 +110,27 @@ export function openDesktopFile(fileName, fileType) {
             openPdfFile(fileName);
             break;
         case 'text/plain':
-            openTextFile(fileName);
+            // Use our new text editor for text files instead of the file viewer
+            const sampleTextContent = 
+`# Project Notes
+
+This is a simple text document that demonstrates
+the text editing capabilities of our OS.
+
+## Features to implement:
+
+- [x] Create desktop interface
+- [x] Add file icons
+- [x] Implement PDF viewer
+- [x] Add text file support
+- [x] Add text editor
+- [ ] Implement file creation
+- [ ] Add drag and drop support
+- [ ] Create file context menu
+
+Feel free to add more desktop files as needed.`;
+            
+            openTextEditor(fileName, sampleTextContent);
             break;
         default:
             console.warn(`Unsupported file type: ${fileType}`);

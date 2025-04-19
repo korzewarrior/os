@@ -1,0 +1,112 @@
+/**
+ * Critical CSS fixes to ensure consistent UI behavior
+ * These high-specificity fixes ensure proper interaction with all UI elements
+ */
+
+/* Z-index layering system to ensure proper stacking */
+.dock-container {
+    z-index: 9000 !important;
+}
+
+.menu-bar {
+    z-index: 9500 !important;
+}
+
+.menu-dropdown {
+    z-index: 9800 !important;
+}
+
+.dock-item {
+    z-index: 9100 !important;
+}
+
+.window-container {
+    z-index: 100 !important; /* Base z-index for windows */
+}
+
+.window-container.window-focused {
+    z-index: 1000 !important; /* Higher z-index for focused windows */
+}
+
+/* Ensure all interactive elements have proper pointer events */
+.menu-item,
+.control,
+.dock-item, 
+.menu-bar-logo,
+.dropdown-item,
+button,
+.settings-category,
+.toggle-switch,
+.background-option {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Proper styling for dock items */
+.dock-item {
+    position: relative !important;
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    user-select: none !important;
+}
+
+.dock-item img {
+    pointer-events: none !important; /* Make sure clicks go to the container not the image */
+}
+
+/* Improve visibility of active dock items */
+.dock-item.active::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -5px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 8px !important;
+    height: 8px !important; 
+    border-radius: 50% !important;
+    background-color: white !important;
+    opacity: 1 !important;
+    display: block !important;
+}
+
+/* Menu dropdown positioning and appearance */
+.menu-dropdown {
+    position: absolute !important;
+    top: 24px !important;
+    min-width: 150px !important;
+    background-color: var(--menu-bar-bg) !important;
+    border-radius: 0 0 5px 5px !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    pointer-events: auto !important;
+}
+
+/* Fix menu dropdown display when active */
+.menu-item.active .menu-dropdown,
+.menu-bar-logo.active .menu-dropdown {
+    display: block !important;
+}
+
+/* Highlight active menu items better */
+.menu-item.active,
+.menu-bar-logo.active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dropdown items styling */
+.dropdown-item {
+    color: var(--menu-text) !important;
+    padding: 8px 15px !important;
+    white-space: nowrap !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--menu-hover) !important;
+}
+
+/* Separator styling */
+.dropdown-separator {
+    height: 1px !important;
+    background-color: rgba(255,255,255,0.2) !important;
+    margin: 5px 0 !important;
+} 

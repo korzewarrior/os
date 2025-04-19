@@ -11,15 +11,9 @@ export function initializeSettings() {
     console.log('Settings app initializing...');
     
     // Initialize the settings window manager
-    settingsWindow = createWindowManager('settings', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true,
-        onMinimize: () => console.log('Settings minimized'),
-        onMaximize: () => console.log('Settings maximized'),
-        onRestore: () => console.log('Settings restored')
-    });
-    
+    // REMOVED: settingsWindow = createWindowManager('settings', { ... });
+    // The window manager is already created globally in script.js
+
     // Setup settings UI interactions
     setupSettingsUI();
     
@@ -60,25 +54,106 @@ function setupSettingsUI() {
         });
     });
     
-    // Setup theme toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('change', () => {
-            document.body.classList.toggle('light-theme', themeToggle.checked);
-            localStorage.setItem('theme', themeToggle.checked ? 'light' : 'dark');
-        });
-        
-        // Initialize theme from localStorage if available
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            const isLightTheme = savedTheme === 'light';
-            themeToggle.checked = isLightTheme;
-            document.body.classList.toggle('light-theme', isLightTheme);
-        }
-    }
+    // Setup theme toggle - FIXED IMPLEMENTATION
+    setupThemeToggle();
+    
+    // Setup font size slider - FIXED IMPLEMENTATION
+    setupFontSizeSlider();
     
     // Setup dynamic wallpaper loader
     loadAndSetupWallpapers();
+}
+
+/**
+ * Setup theme toggle with proper event handling
+ */
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) {
+        console.error('Theme toggle not found in DOM');
+        return;
+    }
+    
+    // REMOVED: Remove any existing listeners to avoid duplicates
+    // const newThemeToggle = themeToggle.cloneNode(true);
+    // themeToggle.parentNode.replaceChild(newThemeToggle, themeToggle);
+    
+    // Add proper event listener directly to the original element
+    themeToggle.addEventListener('change', function() {
+        // Toggle the dark-theme class based on toggle state
+        // When checked, it's LIGHT mode (no dark-theme class)
+        // When unchecked, it's DARK mode (has dark-theme class)
+        document.body.classList.toggle('dark-theme', !this.checked);
+        
+        // Save preference in localStorage
+        localStorage.setItem('theme', this.checked ? 'light' : 'dark');
+        
+        // Log the theme change
+        console.log(`Theme changed to: ${this.checked ? 'light' : 'dark'}`);
+    });
+    
+    // Initialize theme from localStorage if available
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        const isLightTheme = savedTheme === 'light';
+        themeToggle.checked = isLightTheme; // Use original element
+        document.body.classList.toggle('dark-theme', !isLightTheme);
+    } else {
+        // Default to light theme if nothing is saved
+        themeToggle.checked = true; // Use original element
+        document.body.classList.remove('dark-theme');
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+/**
+ * Setup font size slider with proper event handling
+ */
+function setupFontSizeSlider() {
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeValue = document.getElementById('font-size-value');
+    
+    if (!fontSizeSlider || !fontSizeValue) {
+        console.error('Font size slider or value display not found in DOM');
+        return;
+    }
+    
+    // REMOVED: Remove any existing listeners to avoid duplicates
+    // const newFontSizeSlider = fontSizeSlider.cloneNode(true);
+    // fontSizeSlider.parentNode.replaceChild(newFontSizeSlider, fontSizeSlider);
+    
+    // Apply saved font size if available
+    const savedFontSize = localStorage.getItem('font-size') || '13';
+    
+    // Update the slider and display value
+    fontSizeSlider.value = savedFontSize; // Use original element
+    fontSizeValue.textContent = `${savedFontSize}px`;
+    
+    // Apply the font size
+    applyFontSize(savedFontSize);
+    
+    // Add event listener for slider changes directly to the original element
+    fontSizeSlider.addEventListener('input', function() {
+        const newSize = this.value;
+        fontSizeValue.textContent = `${newSize}px`;
+        applyFontSize(newSize);
+        localStorage.setItem('font-size', newSize);
+    });
+}
+
+/**
+ * Apply font size to the entire application
+ * @param {string|number} size - Font size in pixels
+ */
+function applyFontSize(size) {
+    // Ensure size is a number
+    const fontSize = parseInt(size, 10);
+    
+    // Set the CSS variable for the root element
+    document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
+    
+    // Log the change
+    console.log(`Font size changed to: ${fontSize}px`);
 }
 
 /**
@@ -203,6 +278,7 @@ async function getAvailableWallpapers() {
  * Show the settings application
  */
 export function showSettings() {
+    const settingsWindow = window.windowManagers ? window.windowManagers['settings'] : null;
     if (settingsWindow) {
         settingsWindow.show();
     } else {
@@ -214,6 +290,7 @@ export function showSettings() {
  * Hide the settings application
  */
 export function hideSettings() {
+    const settingsWindow = window.windowManagers ? window.windowManagers['settings'] : null;
     if (settingsWindow) {
         const settingsElement = document.getElementById('settings');
         if (settingsElement) {

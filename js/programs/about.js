@@ -2,7 +2,7 @@
  * About Program
  * Displays system information and details about the operating system
  */
-import { Program } from '../program.js';
+import { Program, ProgramManager } from '../program.js';
 
 export class AboutProgram extends Program {
     constructor() {

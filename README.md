@@ -45,7 +45,7 @@ The project is organized into the following directories:
   - Terminal with interactive commands
   - Web browser with navigation
   - Mail client
-  - PDF and text file viewer
+  - PDF Viewer (handles text files for now)
 - Desktop with file icons
 - Dock for launching applications
 

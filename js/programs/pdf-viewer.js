@@ -1,50 +1,47 @@
-// File Viewer implementation
+// PDF Viewer implementation (Formerly File Viewer)
 import { createWindowManager } from '../window-manager.js';
 
-// Global reference to file viewer window manager
-let fileViewerWindow;
+// Global reference to pdf viewer window manager
+// let fileViewerWindow; // No longer needed as we fetch from global registry
 
 /**
- * Initialize the file viewer application
+ * Initialize the PDF viewer application
  */
-export function initializeFileViewer() {
-    console.log('File Viewer initializing...');
+export function initializePdfViewer() {
+    console.log('PDF Viewer initializing...');
     
-    // Initialize the file viewer window manager
-    fileViewerWindow = createWindowManager('pdf-viewer', {
-        initialWidth: '800px',
-        initialHeight: '600px',
-        minimized: true,
-        onMinimize: () => console.log('File Viewer minimized'),
-        onMaximize: () => console.log('File Viewer maximized'),
-        onRestore: () => console.log('File Viewer restored')
-    });
-    
+    // Window manager is initialized globally in script.js
+    // Initialization logic specific to PDF viewer can go here if needed in the future.
+
     return {
-        showFileViewer,
-        hideFileViewer,
+        showPdfViewer,
+        hidePdfViewer,
         openPdfFile,
-        openTextFile
+        openTextFile // Keep for now, though consider moving text handling
     };
 }
 
 /**
- * Show the file viewer application
+ * Show the PDF viewer application
  */
-export function showFileViewer() {
-    if (fileViewerWindow) {
-        fileViewerWindow.show();
+export function showPdfViewer() {
+    const pdfViewerWindow = window.windowManagers ? window.windowManagers['pdf-viewer'] : null;
+    if (pdfViewerWindow) {
+        pdfViewerWindow.show();
     } else {
-        console.error('File Viewer window not initialized');
+        console.error('PDF Viewer window not initialized');
     }
 }
 
 /**
- * Hide the file viewer application
+ * Hide the PDF viewer application
  */
-export function hideFileViewer() {
-    if (fileViewerWindow) {
-        fileViewerWindow.minimize();
+export function hidePdfViewer() {
+    const pdfViewerWindow = window.windowManagers ? window.windowManagers['pdf-viewer'] : null;
+    if (pdfViewerWindow) {
+        pdfViewerWindow.minimize();
+    } else {
+        console.error('PDF Viewer window not initialized - cannot hide');
     }
 }
 
@@ -53,11 +50,12 @@ export function hideFileViewer() {
  * @param {string} fileName - Name of the PDF file to open
  */
 export function openPdfFile(fileName) {
+    console.log(`PDF Viewer: Opening PDF ${fileName}`);
     const title = document.querySelector('.pdf-viewer-title');
     const content = document.querySelector('.pdf-viewer-content');
     
     if (!title || !content) {
-        console.error('File Viewer elements not found');
+        console.error('PDF Viewer elements not found');
         return;
     }
     
@@ -145,7 +143,7 @@ export function openPdfFile(fileName) {
     }
     
     // Show the file viewer
-    showFileViewer();
+    showPdfViewer();
 }
 
 /**
@@ -153,11 +151,12 @@ export function openPdfFile(fileName) {
  * @param {string} fileName - Name of the text file to open
  */
 export function openTextFile(fileName) {
+    console.log(`PDF Viewer: Opening Text ${fileName}`); // Log clarifies it's currently in PDF viewer
     const title = document.querySelector('.pdf-viewer-title');
     const content = document.querySelector('.pdf-viewer-content');
     
     if (!title || !content) {
-        console.error('File Viewer elements not found');
+        console.error('PDF Viewer elements not found');
         return;
     }
     
@@ -200,5 +199,5 @@ Feel free to add more desktop files as needed.
     content.appendChild(textContent);
     
     // Show the viewer
-    showFileViewer();
+    showPdfViewer();
 } 

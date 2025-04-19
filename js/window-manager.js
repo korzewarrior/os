@@ -5,43 +5,48 @@ export class WindowManager {
     
     constructor(id, options = {}) {
         this.id = id;
-        this.element = document.getElementById(id);
-        this.options = {
-            title: options.title || id.charAt(0).toUpperCase() + id.slice(1),
-            initialWidth: options.initialWidth || '800px',
-            initialHeight: options.initialHeight || '600px',
-            minimized: options.minimized !== false,
-            onMinimize: options.onMinimize || (() => {}),
-            onMaximize: options.onMaximize || (() => {}),
-            onRestore: options.onRestore || (() => {})
-        };
+        this.options = Object.assign({
+            title: '',
+            initialWidth: 'auto',
+            initialHeight: 'auto',
+            minimized: false,
+            onMinimize: () => {},
+            onMaximize: () => {},
+            onRestore: () => {}
+        }, options);
         
-        // Store original dimensions and position for proper restoration
+        // Create element references
+        this.element = document.getElementById(id);
+        this.header = this.element ? this.element.querySelector('.window-header') : null;
+        this.title = this.element ? this.element.querySelector('.window-title') : null;
+        this.resizeHandle = this.element ? this.element.querySelector('.resize-handle') : null;
+        this.dockIcon = document.getElementById(`${id}-dock-icon`);
+        
+        // Store callbacks for showing the window
+        this.onShowCallbacks = [];
+        
+        // Store original state for restoring from fullscreen
         this.originalState = {
             width: this.options.initialWidth,
             height: this.options.initialHeight,
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 100
+            transform: 'translate(-50%, -50%)'
         };
         
-        if (!this.element) {
-            console.error(`[${id}] Element with ID "${id}" not found`);
-            return;
+        // Register this window manager in the global registry for emergency-fix.js to access
+        if (!window.windowManagers) {
+            window.windowManagers = {};
         }
+        window.windowManagers[id] = this;
         
-        this.headerSelector = `.${id}-header`;
-        this.header = this.element.querySelector(this.headerSelector) || 
-                      this.element.querySelector('.window-header');
-        
-        this.controlsContainer = this.element.querySelector('.window-controls');
-        this.dockIcon = document.getElementById(`${id}-dock-icon`);
-        this.resizeHandle = this.element.querySelector('.resize-handle');
-        
-        // Initialize
-        this.initialize();
+        // Initialize if element exists
+        if (this.element) {
+            this.initialize();
+        } else {
+            console.error(`Window element with ID ${id} not found`);
+        }
     }
     
     initialize() {
@@ -107,8 +112,23 @@ export class WindowManager {
     setupDragging() {
         if (!this.header) return;
         
+        // Remove any existing event listeners by cloning the header
+        const newHeader = this.header.cloneNode(true);
+        this.header.parentNode.replaceChild(newHeader, this.header);
+        this.header = newHeader;
+        
+        // Set visual cues and ensure proper interaction
+        this.header.style.cursor = 'grab';
+        this.header.style.pointerEvents = 'auto';
+        
         let isDragging = false;
         let offsetX, offsetY;
+        
+        // Rebind controls if they exist in the header
+        this.controlsContainer = this.header.querySelector('.window-controls');
+        if (this.controlsContainer) {
+            this.setupControls();
+        }
         
         this.header.addEventListener('mousedown', (e) => {
             // Don't drag if clicking controls or inputs
@@ -117,6 +137,12 @@ export class WindowManager {
                 e.target.tagName === 'BUTTON') {
                 return;
             }
+            
+            // Prevent default browser behavior
+            e.preventDefault();
+            
+            // Ensure we're focused when beginning a drag operation
+            this.bringToFront();
             
             isDragging = true;
             
@@ -135,28 +161,41 @@ export class WindowManager {
             this.element.style.transform = 'none';
             this.element.classList.add('dragged');
             
-            // Bring to front
-            this.bringToFront();
-            
-            e.preventDefault();
             console.log(`[${this.id}] Drag started`);
         });
         
         // Use document for mouse move/up to catch events outside the header
-        document.addEventListener('mousemove', (e) => {
+        const mouseMoveHandler = (e) => {
             if (!isDragging) return;
+            
+            // Prevent default browser behavior during drag
+            e.preventDefault();
             
             const x = e.clientX - offsetX;
             const y = e.clientY - offsetY;
             
-            this.element.style.left = `${x}px`;
-            this.element.style.top = `${y}px`;
-        });
+            // Apply boundaries to keep window within viewport
+            const windowWidth = this.element.offsetWidth;
+            const windowHeight = this.element.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Ensure at least part of the window is always visible and draggable
+            // (at least 100px of the window must remain in viewport)
+            const boundedX = Math.min(Math.max(x, -windowWidth + 100), viewportWidth - 100);
+            const boundedY = Math.min(Math.max(y, 0), viewportHeight - 50);
+            
+            this.element.style.left = `${boundedX}px`;
+            this.element.style.top = `${boundedY}px`;
+        };
         
-        document.addEventListener('mouseup', () => {
+        const mouseUpHandler = () => {
             if (isDragging) {
                 isDragging = false;
                 console.log(`[${this.id}] Drag ended`);
+                
+                // Remove the dragged class
+                this.element.classList.remove('dragged');
                 
                 // Save current position in the originalState to enable returning to this position
                 if (!this.element.classList.contains('fullscreen')) {
@@ -166,11 +205,31 @@ export class WindowManager {
                     this.originalState.transform = 'none';
                 }
             }
-        });
+        };
+        
+        // Add the event listeners to document to ensure they work when mouse moves outside the header
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        
+        // Store reference to these handlers for potential cleanup
+        this._dragHandlers = {
+            mousemove: mouseMoveHandler,
+            mouseup: mouseUpHandler
+        };
     }
     
     setupResizing() {
         if (!this.resizeHandle) return;
+        
+        // Remove any existing event listeners by cloning the resize handle
+        const newResizeHandle = this.resizeHandle.cloneNode(true);
+        this.resizeHandle.parentNode.replaceChild(newResizeHandle, this.resizeHandle);
+        this.resizeHandle = newResizeHandle;
+        
+        // Ensure proper interaction capabilities
+        this.resizeHandle.style.cursor = 'nwse-resize';
+        this.resizeHandle.style.pointerEvents = 'auto';
+        this.resizeHandle.style.zIndex = '10';
         
         let isResizing = false;
         let originalWidth, originalHeight, originalX, originalY;
@@ -208,7 +267,7 @@ export class WindowManager {
             console.log(`[${this.id}] Resize started`);
         });
         
-        document.addEventListener('mousemove', (e) => {
+        const mouseMoveHandler = (e) => {
             if (!isResizing) return;
             
             const width = originalWidth + (e.clientX - originalX);
@@ -227,9 +286,9 @@ export class WindowManager {
                 this.element.style.height = `${height}px`;
                 this.originalState.height = `${height}px`;
             }
-        });
+        };
         
-        document.addEventListener('mouseup', () => {
+        const mouseUpHandler = () => {
             if (isResizing) {
                 isResizing = false;
                 console.log(`[${this.id}] Resize ended`);
@@ -242,15 +301,74 @@ export class WindowManager {
                 this.originalState.width = this.element.style.width;
                 this.originalState.height = this.element.style.height;
             }
-        });
+        };
+        
+        // Add the event listeners to document to ensure they work when mouse moves outside the resize handle
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        
+        // Store reference to these handlers for potential cleanup
+        this._resizeHandlers = {
+            mousemove: mouseMoveHandler,
+            mouseup: mouseUpHandler
+        };
     }
     
     setupDockIcon() {
         if (!this.dockIcon) return;
         
-        this.dockIcon.addEventListener('click', () => {
+        // Remove any existing listeners by cloning the dock icon
+        const newDockIcon = this.dockIcon.cloneNode(true);
+        this.dockIcon.parentNode.replaceChild(newDockIcon, this.dockIcon);
+        this.dockIcon = newDockIcon;
+        
+        // Apply high-priority styles to ensure clickability
+        this.dockIcon.style.pointerEvents = 'auto';
+        this.dockIcon.style.cursor = 'pointer';
+        this.dockIcon.style.position = 'relative';
+        this.dockIcon.style.zIndex = '9999'; // Ensure dock icons are always clickable
+        
+        // Make images inside non-interactive to prevent event capture issues
+        const img = this.dockIcon.querySelector('img');
+        if (img) {
+            img.style.pointerEvents = 'none';
+        }
+        
+        // Add a robust click handler
+        this.dockIcon.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event propagation
+            e.preventDefault(); // Prevent default action
             console.log(`[${this.id}] Dock icon clicked`);
-            this.show();
+            
+            // Show the window
+            this.show(); // Use the show method which already handles focus
+            
+            // Remove active class from all dock icons and add to this one
+            document.querySelectorAll('.dock-item').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            this.dockIcon.classList.add('active');
+            
+            // Add focused class to window
+            this.element.classList.add('window-focused');
+            
+            return false; // Ensure no further processing
+        });
+        
+        // Add visual feedback for interaction
+        this.dockIcon.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        this.dockIcon.addEventListener('mouseup', function(e) {
+            e.stopPropagation();
+            this.style.transform = 'scale(1)';
+        });
+        
+        this.dockIcon.addEventListener('mouseleave', function(e) {
+            e.stopPropagation();
+            this.style.transform = 'scale(1)';
         });
     }
     
@@ -287,6 +405,28 @@ export class WindowManager {
         this.bringToFront();
         
         console.log(`[${this.id}] Window shown`);
+        
+        // Update the active window state in menu-bar.js if available
+        if (typeof setActiveWindow === 'function') {
+            try {
+                setActiveWindow(this.id);
+            } catch (e) {
+                console.error(`Error calling setActiveWindow: ${e}`);
+            }
+        }
+        
+        // Call show callbacks
+        this.onShowCallbacks.forEach(callback => callback());
+    }
+    
+    /**
+     * Add a callback function to be called when the window is shown
+     * @param {Function} callback - The function to call
+     */
+    addOnShowCallback(callback) {
+        if (typeof callback === 'function') {
+            this.onShowCallbacks.push(callback);
+        }
     }
     
     toggleFullscreen() {
@@ -301,12 +441,12 @@ export class WindowManager {
         if (this.element.classList.contains('fullscreen')) {
             // Apply fullscreen styles
             this.element.style.position = 'fixed';
-            this.element.style.top = '0';
+            this.element.style.top = '24px'; // Account for menu bar height
             this.element.style.left = '0';
             this.element.style.width = '100%';
-            this.element.style.height = '100vh';
+            this.element.style.height = 'calc(100vh - 24px)'; // Account for menu bar height
             this.element.style.transform = 'none';
-            this.element.style.zIndex = '1000';
+            this.element.style.zIndex = '1000'; // Ensure it's above other elements but respects menu bar positioning
             
             console.log(`[${this.id}] Window maximized`);
             
@@ -349,10 +489,36 @@ export class WindowManager {
     }
     
     bringToFront() {
-        // Increment the counter and set the z-index
+        // First, lower z-index of all windows
+        document.querySelectorAll('.window-container').forEach(win => {
+            // Only adjust windows that aren't this one
+            if (win.id !== this.id) {
+                win.style.zIndex = '100';
+                win.classList.remove('window-focused');
+                
+                // Also update dock icon active states
+                const dockIconId = `${win.id}-dock-icon`;
+                const dockIcon = document.getElementById(dockIconId);
+                if (dockIcon) {
+                    dockIcon.classList.remove('active');
+                }
+            }
+        });
+        
+        // Increment the counter and set the z-index for this window
         WindowManager.zIndexCounter += 10;
-        this.element.style.zIndex = WindowManager.zIndexCounter.toString();
-        console.log(`[${this.id}] Brought to front with z-index: ${WindowManager.zIndexCounter}`);
+        const newZIndex = WindowManager.zIndexCounter;
+        
+        // Set a high value to ensure it's above all other windows
+        this.element.style.zIndex = newZIndex.toString();
+        this.element.classList.add('window-focused');
+        
+        // Add active class to corresponding dock icon
+        if (this.dockIcon) {
+            this.dockIcon.classList.add('active');
+        }
+        
+        console.log(`[${this.id}] Brought to front with z-index: ${newZIndex}`);
     }
 }
 

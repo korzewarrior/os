@@ -15,14 +15,8 @@ export function initializeBrowser() {
     const refreshButton = document.querySelector('.refresh-button');
     
     // Initialize window manager for browser
-    browserWindow = createWindowManager('browser', {
-        initialWidth: '900px',
-        initialHeight: '600px',
-        minimized: true,
-        onMinimize: () => console.log('[browser] Window minimized'),
-        onMaximize: () => console.log('[browser] Window maximized'),
-        onRestore: () => console.log('[browser] Window restored')
-    });
+    // REMOVED: browserWindow = createWindowManager('browser', { ... });
+    // The window manager is already created globally in script.js
     
     // Browser history
     const history = [];

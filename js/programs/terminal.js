@@ -23,16 +23,6 @@ export function initializeTerminal() {
         return;
     }
     
-    // Initialize window manager for terminal
-    terminalWindow = createWindowManager('terminal', {
-        initialWidth: '800px',
-        initialHeight: '500px',
-        minimized: true,
-        onMinimize: () => console.log('[terminal] Window minimized'),
-        onMaximize: () => console.log('[terminal] Window maximized'),
-        onRestore: () => console.log('[terminal] Window restored')
-    });
-    
     // File system and terminal state
     let currentDirectory = '/home/user';
     let commandHistory = [];
@@ -326,8 +316,14 @@ export function initializeTerminal() {
                 break;
             case 'browser':
                 appendToTerminal(`<p>Opening browser...</p>`);
-                const browser = document.getElementById('browser');
-                if (browser) browser.classList.remove('minimized');
+                // Use WindowManager API instead of direct DOM manipulation
+                const browserWindow = window.windowManagers ? window.windowManagers['browser'] : null;
+                if (browserWindow) {
+                    browserWindow.show();
+                } else {
+                    console.error('Browser window manager not found');
+                    appendToTerminal(`<p>Error: Could not open browser.</p>`);
+                }
                 break;
             case 'mail':
                 appendToTerminal(`<p>Opening mail app...</p>`);

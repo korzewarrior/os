@@ -1,24 +1,25 @@
-/* Terminal specific styles */
+/* Terminal specific styles - immune to theme changes */
 .terminal-container {
   width: 800px;
   height: 600px;
-  background-color: var(--window-bg-dark);
-  color: var(--text-light);
+  background-color: #1e1e1e !important; /* Force dark background */
+  color: #f0f0f0 !important; /* Force light text */
 }
 
 .terminal-container .terminal-header {
-  background-color: #303030;
-  border-bottom: 1px solid #404040;
+  background-color: #303030 !important;
+  border-bottom: 1px solid #404040 !important;
 }
 
 .terminal-container .terminal-header .terminal-title {
-  color: #aaa;
+  color: #aaa !important;
 }
 
 .terminal-content {
   padding: 15px;
   height: calc(100% - var(--header-height-tall));
   overflow-y: auto;
+  background-color: #1e1e1e !important;
 }
 
 .terminal-output {
@@ -31,7 +32,7 @@
 }
 
 .prompt-symbol {
-  color: #8ae234;
+  color: #8ae234 !important;
   margin-right: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -40,10 +41,10 @@
 }
 
 #command-input {
-  background: transparent;
+  background: transparent !important;
   border: none;
-  color: #f0f0f0;
-  font-family: monospace;
+  color: #f0f0f0 !important;
+  font-family: var(--font-monospace);
   font-size: 14px;
   flex-grow: 1;
   outline: none;
@@ -53,18 +54,18 @@
 .terminal-container h2, 
 .terminal-container h3, 
 .terminal-container h4 {
-  color: #66c2cd;
+  color: #66c2cd !important;
 }
 
 .terminal-container strong {
-  color: #ad7fa8;
+  color: #ad7fa8 !important;
 }
 
 .ascii-art {
-  color: #66c2cd;
+  color: #66c2cd !important;
   line-height: 1.2;
   margin: 20px 0;
-  font-family: monospace;
+  font-family: var(--font-monospace);
   white-space: pre;
 }
 
@@ -85,7 +86,7 @@
   border-radius: 4px;
   width: 100%;
   margin-bottom: 10px;
-  font-family: inherit;
+  font-family: var(--font-primary);
 }
 
 .contact-form button {
@@ -102,22 +103,23 @@
 .browser-container {
   width: 850px;
   height: 600px;
-  background-color: var(--window-bg-light);
-  color: var(--text-dark);
+  background-color: var(--window-bg);
+  color: var(--text-primary);
 }
 
 .browser-header {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--window-header-border);
+  background-color: var(--window-header-bg);
 }
 
 .browser-container .browser-header .browser-title {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .browser-toolbar {
   height: 40px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #ddd;
+  background-color: var(--element-bg);
+  border-bottom: 1px solid var(--element-border);
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -135,10 +137,11 @@
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 4px;
+  color: var(--text-primary);
 }
 
 .nav-button:hover:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--element-hover);
 }
 
 .nav-button:disabled {
@@ -155,14 +158,16 @@
   width: 100%;
   padding: 6px 10px;
   border-radius: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--element-border);
   outline: none;
+  background-color: var(--window-bg-alt);
+  color: var(--text-primary);
 }
 
 .browser-content {
   height: calc(100% - var(--header-height-tall) - 40px);
   overflow-y: auto;
-  background-color: white;
+  background-color: var(--window-bg-alt);
 }
 
 #browser-display {
@@ -172,6 +177,7 @@
 .browser-home {
   text-align: center;
   padding: 30px 0;
+  color: var(--text-primary);
 }
 
 .bookmarks {
@@ -182,15 +188,16 @@
 }
 
 .bookmark {
-  background-color: #f0f0f0;
+  background-color: var(--element-bg);
   padding: 10px 20px;
   border-radius: 5px;
   cursor: pointer;
-  border: 1px solid #ddd;
+  border: 1px solid var(--element-border);
+  color: var(--text-primary);
 }
 
 .bookmark:hover {
-  background-color: #e0e0e0;
+  background-color: var(--element-hover);
 }
 
 .website-content {
@@ -201,16 +208,17 @@
 .mail-container {
   width: 750px;
   height: 550px;
-  background-color: var(--window-bg-light);
-  color: var(--text-dark);
+  background-color: var(--window-bg);
+  color: var(--text-primary);
 }
 
 .mail-header {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--window-header-border);
+  background-color: var(--window-header-bg);
 }
 
 .mail-container .mail-header .mail-title {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .mail-content {
@@ -219,12 +227,16 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background-color: white;
+  background-color: var(--window-bg-alt);
+  box-sizing: border-box;
 }
 
 .mail-status-area {
-  margin-bottom: 10px;
-  min-height: 40px;
+  margin-bottom: 0;
+  min-height: 0;
+  padding: 5px 0;
+  position: relative;
+  z-index: 100;
 }
 
 .compose-area {
@@ -237,6 +249,37 @@
   display: flex;
   margin-bottom: 10px;
   align-items: center;
+  position: relative;
+}
+
+/* Adjust recipient input to make room for the send button */
+#recipient {
+  padding-right: 40px;
+}
+
+/* Paper airplane send button */
+.send-button-inline {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #0078d4;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.send-button-inline:hover {
+  transform: translateY(-50%) scale(1.2);
+  color: #0062a8;
 }
 
 .form-row label {
@@ -244,28 +287,36 @@
   text-align: right;
   margin-right: 10px;
   font-weight: bold;
+  color: var(--text-primary);
 }
 
 .form-row input {
   flex-grow: 1;
   padding: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--element-border);
   border-radius: 4px;
+  background-color: var(--window-bg-alt);
+  color: var(--text-primary);
 }
 
 #message-body {
   flex-grow: 1;
   padding: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--element-border);
   border-radius: 4px;
   resize: none;
-  margin-bottom: 15px;
-  font-family: Arial, sans-serif;
+  margin-bottom: 0;
+  font-family: var(--font-primary);
+  background-color: var(--window-bg-alt);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  min-height: 100px;
+  max-height: calc(100% - 100px);
+  overflow-y: auto;
 }
 
 .form-footer {
-  display: flex;
-  justify-content: flex-end;
+  display: none;
 }
 
 .send-button {
@@ -282,14 +333,19 @@
   background-color: #0062a8;
 }
 
-.sending-animation {
-  padding: 10px;
+.sending-animation,
+.success-message {
+  position: relative;
+  z-index: 101;
+  margin-bottom: 10px;
   background-color: #f0f7ff;
   border: 1px solid #c0d9ff;
   border-radius: 4px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .loading-dots span {
@@ -305,14 +361,6 @@
   animation-delay: 0.4s;
 }
 
-.success-message {
-  padding: 10px;
-  background-color: #e9f7ef;
-  border: 1px solid #a3e4b5;
-  border-radius: 4px;
-  color: #27ae60;
-}
-
 .success-message p {
   margin: 0;
 }
@@ -326,4 +374,51 @@
 /* Special rule for mail minimization */
 #mail[data-should-minimize="true"]:not([data-user-opened="true"]) {
   display: none !important;
+}
+
+/* PDF Viewer specific styles */
+.pdf-viewer-container {
+  width: 800px;
+  height: 600px;
+  background-color: var(--window-bg);
+  color: var(--text-primary);
+}
+
+.pdf-viewer-header {
+  border-bottom: 1px solid var(--window-header-border);
+  background-color: var(--window-header-bg);
+  height: var(--header-height-tall);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.pdf-viewer-container .pdf-viewer-header .pdf-viewer-title {
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdf-viewer-content {
+  height: calc(100% - var(--header-height-tall));
+  overflow-y: auto;
+  background-color: var(--window-bg-alt);
+  padding: 20px;
+}
+
+.send-button-inline svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.success-message {
+  background-color: #e9f7ef !important;
+  border: 1px solid #a3e4b5 !important;
+  color: #27ae60;
 } 

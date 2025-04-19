@@ -2,6 +2,7 @@
 // Handles menu interactions and status updates
 import { showSettings } from './programs/settings.js';
 import { Program, ProgramManager } from './program.js';
+import { AboutProgram } from './programs/about.js';
 
 // Track the currently active application window
 let activeWindow = null;
@@ -49,6 +50,21 @@ const appMenus = {
         file: [
             { label: 'Open File...', action: 'open-pdf' }
         ]
+    },
+    'text-editor': {
+        file: [
+            { label: 'New', action: 'new-text-file' },
+            { label: 'Save', action: 'save-text-file' },
+            { separator: true },
+            { label: 'Close', action: 'close-text-editor' }
+        ],
+        edit: [
+            { label: 'Cut', action: 'cut-text' },
+            { label: 'Copy', action: 'copy-text' },
+            { label: 'Paste', action: 'paste-text' },
+            { separator: true },
+            { label: 'Select All', action: 'select-all-text' }
+        ]
     }
 };
 
@@ -61,7 +77,8 @@ const standardMenus = {
         { label: 'Terminal', action: 'show-terminal' },
         { label: 'Browser', action: 'show-browser' },
         { label: 'Mail', action: 'show-mail' },
-        { label: 'File Viewer', action: 'show-fileviewer' }
+        { label: 'File Viewer', action: 'show-fileviewer' },
+        { label: 'Text Editor', action: 'show-text-editor' }
     ]
 };
 
@@ -116,25 +133,19 @@ export function initializeMenuBar() {
  * Setup simple window tracking with minimal overhead
  */
 function setupSimpleWindowListeners() {
-    // Setup dock icon clicks - simple version without cloning nodes
+    // Setup dock icon clicks - using WindowManager instances when available
     const dockIcons = document.querySelectorAll('.dock-item');
     dockIcons.forEach(icon => {
         icon.addEventListener('click', function() {
             const appId = this.id.replace('-dock-icon', '');
-            const app = document.getElementById(appId);
             
-            if (app) {
-                // Remove minimized class
-                app.classList.remove('minimized');
-                
-                // Update z-index to bring to front (simple approach)
-                document.querySelectorAll('.window-container').forEach(win => {
-                    win.style.zIndex = '100';
-                });
-                app.style.zIndex = '101';
-                
-                // Set as active window
-                setActiveWindow(appId);
+            // Check if there's a WindowManager instance for this app
+            if (window.windowManagers && window.windowManagers[appId]) {
+                // Use the WindowManager's show method
+                window.windowManagers[appId].show();
+            } else {
+                // Fallback to the simple approach
+                showApplication(appId);
             }
         });
     });
@@ -146,14 +157,20 @@ function setupSimpleWindowListeners() {
             if (window && !window.classList.contains('minimized')) {
                 const appId = window.id;
                 
-                // Bring to front
-                document.querySelectorAll('.window-container').forEach(win => {
-                    win.style.zIndex = '100';
-                });
-                window.style.zIndex = '101';
-                
-                // Set as active
-                setActiveWindow(appId);
+                // Use WindowManager if available
+                if (window.windowManagers && window.windowManagers[appId]) {
+                    window.windowManagers[appId].bringToFront();
+                } else {
+                    // Fallback to the simple approach
+                    // Bring to front
+                    document.querySelectorAll('.window-container').forEach(win => {
+                        win.style.zIndex = '100';
+                    });
+                    window.style.zIndex = '101';
+                    
+                    // Set as active
+                    setActiveWindow(appId);
+                }
             }
         });
     });
@@ -163,17 +180,24 @@ function setupSimpleWindowListeners() {
         button.addEventListener('click', function() {
             const window = this.closest('.window-container');
             if (window) {
-                window.classList.add('minimized');
-                
-                // Update dock icon
                 const appId = window.id;
-                const dockIcon = document.getElementById(`${appId}-dock-icon`);
-                if (dockIcon) {
-                    dockIcon.classList.remove('active');
-                }
                 
-                // Set desktop as active
-                setActiveWindow(DEFAULT_APP);
+                // Use WindowManager if available
+                if (window.windowManagers && window.windowManagers[appId]) {
+                    window.windowManagers[appId].minimize();
+                } else {
+                    // Fallback to the simple approach
+                    window.classList.add('minimized');
+                    
+                    // Update dock icon
+                    const dockIcon = document.getElementById(`${appId}-dock-icon`);
+                    if (dockIcon) {
+                        dockIcon.classList.remove('active');
+                    }
+                    
+                    // Set desktop as active
+                    setActiveWindow(DEFAULT_APP);
+                }
             }
         });
     });
@@ -210,109 +234,217 @@ function setupLogoMenu() {
     // Create dropdown menu for logo
     const dropdown = document.createElement('div');
     dropdown.className = 'menu-dropdown';
+    dropdown.style.width = '220px'; // Set explicit width
     dropdown.style.left = '0';
     dropdown.style.position = 'absolute';
     dropdown.style.top = '24px';
-    dropdown.style.zIndex = '2000';
+    dropdown.style.zIndex = '9999'; // Very high z-index
+    dropdown.style.display = 'none'; // Initially hidden
+    dropdown.style.backgroundColor = 'var(--menu-bar-bg)';
+    dropdown.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+    dropdown.style.backdropFilter = 'blur(10px)';
+    dropdown.style.borderRadius = '0 0 5px 5px';
     
     // Add items to dropdown
     logoMenu.forEach(menuItem => {
         if (menuItem.separator) {
             const separator = document.createElement('div');
             separator.className = 'dropdown-separator';
+            separator.style.height = '1px';
+            separator.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            separator.style.margin = '5px 0';
             dropdown.appendChild(separator);
         } else {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
             item.textContent = menuItem.label;
             item.dataset.action = menuItem.action;
+            item.style.padding = '8px 15px';
+            item.style.color = 'var(--menu-text)';
+            item.style.cursor = 'pointer';
+            item.style.whiteSpace = 'nowrap';
+            
+            // Add hover effect
+            item.addEventListener('mouseover', function() {
+                this.style.backgroundColor = 'var(--menu-hover)';
+            });
+            
+            item.addEventListener('mouseout', function() {
+                this.style.backgroundColor = '';
+            });
             
             // Direct click handler to perform action immediately
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log(`Executing action: ${menuItem.action}`);
                 handleMenuAction(menuItem.action);
-                hideAllMenus(); // Hide menus after action
+                hideAllMenus(); // Hide menus after clicking
             });
             
             dropdown.appendChild(item);
         }
     });
     
-    // Add dropdown to document body for more reliable positioning
+    // Append dropdown to logo element
     newLogoElement.appendChild(dropdown);
     
-    // Ensure logo looks clickable
-    newLogoElement.style.cursor = 'pointer';
-    
-    // Direct toggle function for the menu
-    function toggleMenu(e) {
+    // Setup click handler for logo
+    newLogoElement.addEventListener('click', function(e) {
         e.stopPropagation();
-        e.preventDefault();
-        
-        const isActive = newLogoElement.classList.contains('active');
-        
-        // Hide all menus first
-        hideAllMenus();
-        
-        // If menu wasn't active, show it
-        if (!isActive) {
-            newLogoElement.classList.add('active');
-            dropdown.style.display = 'block';
-            console.log('OS logo menu opened');
-        }
-        
-        return false;
-    }
-    
-    // Hide all menus
-    function hideAllMenus() {
-        document.querySelectorAll('.menu-item.active, .menu-bar-logo.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
-            dropdown.style.display = 'none';
-        });
-    }
-    
-    // Add direct click handler to toggle menu
-    newLogoElement.addEventListener('click', toggleMenu);
-    
-    // Add global click handler to close menu when clicking elsewhere
-    document.addEventListener('click', hideAllMenus);
-    
-    // Handle escape key to close menu
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            hideAllMenus();
-        }
+        toggleLogoMenu();
     });
     
-    console.log('OS logo menu setup complete');
+    // Setup all application menu dropdowns
+    setupAppMenus();
+    
+    // Click outside to close menus
+    document.addEventListener('click', function() {
+        hideAllMenus();
+    });
 }
 
 /**
- * Set the active window and update menus
+ * Toggle the logo menu dropdown visibility
+ */
+function toggleLogoMenu() {
+    const dropdown = document.querySelector('.menu-bar-logo .menu-dropdown');
+    if (!dropdown) return;
+    
+    const isVisible = dropdown.style.display === 'block';
+    
+    // Hide all menus first
+    hideAllMenus();
+    
+    // If it wasn't visible, show it
+    if (!isVisible) {
+        dropdown.style.display = 'block';
+        document.querySelector('.menu-bar-logo').classList.add('active');
+    }
+}
+
+/**
+ * Setup all application menu dropdowns
+ */
+function setupAppMenus() {
+    // Get all menu items
+    const menuItems = document.querySelectorAll('.menu-item');
+    
+    menuItems.forEach(item => {
+        // Skip the app name item
+        if (item.classList.contains('app-name')) return;
+        
+        // Clone to remove existing listeners
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+        
+        // Create dropdown for this menu item
+        const dropdown = document.createElement('div');
+        dropdown.className = 'menu-dropdown';
+        dropdown.style.width = 'auto';
+        dropdown.style.minWidth = '180px';
+        dropdown.style.position = 'absolute';
+        dropdown.style.top = '24px';
+        dropdown.style.left = '0';
+        dropdown.style.zIndex = '9999';
+        dropdown.style.display = 'none';
+        dropdown.style.backgroundColor = 'var(--menu-bar-bg)';
+        dropdown.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+        dropdown.style.backdropFilter = 'blur(10px)';
+        dropdown.style.borderRadius = '0 0 5px 5px';
+        
+        // Store the menu name
+        const menuName = newItem.textContent.toLowerCase();
+        
+        // Add the dropdown to the menu item
+        newItem.appendChild(dropdown);
+        
+        // Add click handler
+        newItem.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleAppMenu(this);
+        });
+    });
+    
+    // Initially populate menus
+    updateMenus();
+}
+
+/**
+ * Toggle an application menu dropdown
+ */
+function toggleAppMenu(menuItem) {
+    const dropdown = menuItem.querySelector('.menu-dropdown');
+    if (!dropdown) return;
+    
+    const isVisible = dropdown.style.display === 'block';
+    
+    // Hide all menus first
+    hideAllMenus();
+    
+    // If it wasn't visible, show it
+    if (!isVisible) {
+        dropdown.style.display = 'block';
+        menuItem.classList.add('active');
+    }
+}
+
+/**
+ * Hide all menu dropdowns
+ */
+function hideAllMenus() {
+    // Hide all dropdown menus
+    document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
+    
+    // Remove active class from all menu items
+    document.querySelectorAll('.menu-item, .menu-bar-logo').forEach(item => {
+        item.classList.remove('active');
+    });
+}
+
+/**
+ * Set the active window and update the UI accordingly
  * @param {string} windowId - ID of the window to set as active
  */
-function setActiveWindow(windowId) {
-    // Avoid unnecessary updates
+export function setActiveWindow(windowId) {
+    // If same window is already active, no need to change
     if (activeWindow === windowId) return;
     
+    console.log(`Setting active window to: ${windowId}`);
+    
+    // Update active window state
     activeWindow = windowId;
     
-    // Update application name
+    // Update app name in menu bar
     updateAppName();
     
-    // Update menus
-    updateMenus();
-    
-    // Update visual focus indicators
-    document.querySelectorAll('.window-container').forEach(win => {
-        if (win.id === windowId) {
-            win.classList.add('window-focused');
-        } else {
-            win.classList.remove('window-focused');
+    // Update active window indicators in DOM
+    document.querySelectorAll('.window-container').forEach(window => {
+        // Remove focused class from all windows
+        window.classList.remove('window-focused');
+        
+        // Add focused class to active window
+        if (window.id === windowId) {
+            window.classList.add('window-focused');
         }
     });
+    
+    // Update the dock icons
+    document.querySelectorAll('.dock-item').forEach(icon => {
+        const appId = icon.id.replace('-dock-icon', '');
+        
+        // Remove active state from all dock icons
+        icon.classList.remove('active');
+        
+        // Add active state to dock icon for active window
+        if (appId === windowId && windowId !== DEFAULT_APP) {
+            icon.classList.add('active');
+        }
+    });
+    
+    // Update menus for this application
+    updateMenus();
 }
 
 /**
@@ -337,210 +469,165 @@ function updateAppName() {
         case 'pdf-viewer':
             appName = "File Viewer";
             break;
+        case 'text-editor':
+            appName = "Text Editor";
+            break;
     }
     
     appNameElement.textContent = appName;
 }
 
 /**
- * Update menus based on the active window
+ * Update menus based on active window
  */
 function updateMenus() {
-    // Clear existing dropdown menus
-    document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
-        if (!dropdown.closest('.menu-bar-logo')) { // Don't remove logo dropdown
-            dropdown.remove();
-        }
-    });
+    // Get all menu items
+    const menuItems = document.querySelectorAll('.menu-item:not(.app-name)');
     
-    // Remove existing click handlers from menu items
-    document.querySelectorAll('.menu-item').forEach(item => {
-        if (item.classList.contains('app-name') || item.closest('.menu-bar-logo')) return;
-        item.replaceWith(item.cloneNode(true));
-    });
-    
-    // Create the application menus
-    createAppMenus();
-}
-
-/**
- * Create menu dropdowns for the active application
- */
-function createAppMenus() {
-    // Get app-specific menus
-    const appMenuConfig = appMenus[activeWindow] || appMenus[DEFAULT_APP];
-    
-    // Get fresh references to menu items after cloning
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    // Show/hide menu items based on available content
+    // For each menu item, update its dropdown
     menuItems.forEach(item => {
-        if (item.classList.contains('app-name') || item.closest('.menu-bar-logo')) return; // Skip app name and logo
+        const menuName = item.textContent.toLowerCase();
+        const dropdown = item.querySelector('.menu-dropdown');
         
-        const menuType = item.textContent.toLowerCase();
+        if (!dropdown) return;
         
-        // Check if this menu type has content
-        const hasContent = (menuType === 'file' || menuType === 'edit' || menuType === 'view') && 
-                          appMenuConfig[menuType] && 
-                          appMenuConfig[menuType].length > 0;
+        // Clear the dropdown
+        dropdown.innerHTML = '';
         
-        const isStandardMenu = (menuType === 'window') && 
-                              standardMenus[menuType] && 
-                              standardMenus[menuType].length > 0;
+        // Get menu items based on active window
+        const menuItems = getMenuItemsForMenu(menuName);
         
-        // Show/hide menu item based on content availability
-        if (hasContent || isStandardMenu) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-        
-        // Get menu content
-        let menuContent = [];
-        if (menuType === 'file' || menuType === 'edit' || menuType === 'view') {
-            menuContent = appMenuConfig[menuType] || [];
-        } else if (menuType === 'window') {
-            menuContent = standardMenus[menuType] || [];
-        }
-        
-        // Skip if no content
-        if (menuContent.length === 0) return;
-        
-        // Create dropdown
-        const dropdown = document.createElement('div');
-        dropdown.className = 'menu-dropdown';
-        
-        // Add items to dropdown
-        menuContent.forEach(menuItem => {
-            if (menuItem.separator) {
-                const separator = document.createElement('div');
-                separator.className = 'dropdown-separator';
-                dropdown.appendChild(separator);
-            } else {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item';
-                item.textContent = menuItem.label;
-                item.dataset.action = menuItem.action;
-                
-                // Add click handler directly
-                item.addEventListener('click', function(e) {
-                    e.stopPropagation();
+        // Create menu items
+        if (menuItems && menuItems.length > 0) {
+            menuItems.forEach(menuItem => {
+                if (menuItem.separator) {
+                    const separator = document.createElement('div');
+                    separator.className = 'dropdown-separator';
+                    separator.style.height = '1px';
+                    separator.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    separator.style.margin = '5px 0';
+                    dropdown.appendChild(separator);
+                } else {
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'dropdown-item';
+                    itemElement.textContent = menuItem.label;
+                    itemElement.dataset.action = menuItem.action;
+                    itemElement.style.padding = '8px 15px';
+                    itemElement.style.color = 'var(--menu-text)';
+                    itemElement.style.cursor = 'pointer';
+                    itemElement.style.whiteSpace = 'nowrap';
                     
-                    // Close all menus
-                    document.querySelectorAll('.menu-item').forEach(mi => {
-                        mi.classList.remove('active');
+                    // Add hover effect
+                    itemElement.addEventListener('mouseover', function() {
+                        this.style.backgroundColor = 'var(--menu-hover)';
                     });
                     
-                    // Handle the action
-                    handleMenuAction(menuItem.action);
-                });
-                
-                dropdown.appendChild(item);
-            }
-        });
-        
-        // Add dropdown to menu item
-        item.appendChild(dropdown);
-        
-        // Add click handler to menu item
-        item.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            // Close other menus
-            menuItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('active');
+                    itemElement.addEventListener('mouseout', function() {
+                        this.style.backgroundColor = '';
+                    });
+                    
+                    // Add click handler
+                    itemElement.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        console.log(`Executing action: ${menuItem.action}`);
+                        handleMenuAction(menuItem.action);
+                        hideAllMenus();
+                    });
+                    
+                    dropdown.appendChild(itemElement);
                 }
             });
-            
-            document.querySelector('.menu-bar-logo')?.classList.remove('active');
-            
-            // Toggle this menu
-            item.classList.toggle('active');
-        });
-    });
-    
-    // Add global click handler to close menus
-    document.addEventListener('click', function() {
-        menuItems.forEach(item => {
-            item.classList.remove('active');
-        });
-        document.querySelector('.menu-bar-logo')?.classList.remove('active');
+        } else {
+            // If no items, add a disabled placeholder
+            const placeholder = document.createElement('div');
+            placeholder.className = 'dropdown-item disabled';
+            placeholder.textContent = 'No actions available';
+            placeholder.style.padding = '8px 15px';
+            placeholder.style.color = 'var(--text-muted)';
+            placeholder.style.opacity = '0.7';
+            placeholder.style.pointerEvents = 'none';
+            dropdown.appendChild(placeholder);
+        }
     });
 }
 
 /**
- * Handle menu action based on active window
+ * Get menu items for a specific menu based on active window
+ * @param {string} menuName - Name of the menu (file, edit, etc.)
+ * @returns {Array} Array of menu items
+ */
+function getMenuItemsForMenu(menuName) {
+    // Standard menus that are the same for all apps
+    if (menuName === 'window') {
+        return standardMenus.window;
+    }
+    
+    // App-specific menus
+    if (activeWindow && appMenus[activeWindow] && appMenus[activeWindow][menuName]) {
+        return appMenus[activeWindow][menuName];
+    }
+    
+    // Default app menus
+    if (appMenus[DEFAULT_APP] && appMenus[DEFAULT_APP][menuName]) {
+        return appMenus[DEFAULT_APP][menuName];
+    }
+    
+    // Return empty array if no menu items found
+    return [];
+}
+
+/**
+ * Handle menu action
  * @param {string} action - The action to perform
  */
 function handleMenuAction(action) {
-    // Window navigation actions
-    if (action === 'show-terminal') {
-        showApplication('terminal');
-        return;
-    } else if (action === 'show-browser') {
-        showApplication('browser');
-        return;
-    } else if (action === 'show-mail') {
-        showApplication('mail');
-        return;
-    } else if (action === 'show-fileviewer') {
-        showApplication('pdf-viewer');
-        return;
-    } else if (action === 'about') {
-        // Use ProgramManager to launch the About program
-        if (ProgramManager.programs && ProgramManager.programs.about) {
-            ProgramManager.launch('about');
-        } else {
-            console.error('About program not registered. Trying direct instantiation...');
-            // As a fallback, try to directly import and instantiate
-            import('./programs/about.js').then(module => {
-                if (module.AboutProgram) {
-                    const aboutProgram = new module.AboutProgram();
-                    aboutProgram.init();
-                } else {
-                    console.error('AboutProgram not found in module');
-                }
-            }).catch(err => {
-                console.error('Failed to import About program:', err);
-                alert('Failed to open About dialog. See console for details.');
-            });
+    console.log(`Handling menu action: ${action}`);
+    
+    // Handle action based on the active window
+    if (activeWindow === 'terminal') {
+        handleTerminalAction(action);
+    } else if (activeWindow === 'browser') {
+        handleBrowserAction(action);
+    } else if (activeWindow === 'mail') {
+        handleMailAction(action);
+    } else if (activeWindow === 'pdf-viewer') {
+        handlePdfViewerAction(action);
+    } else if (activeWindow === 'text-editor') {
+        handleTextEditorAction(action);
+    } else {
+        // Common actions or desktop-specific actions
+        switch (action) {
+            case 'about':
+                showAboutDialog();
+                break;
+            case 'settings':
+                showSettings();
+                break;
+            case 'show-terminal':
+                showApplication('terminal');
+                break;
+            case 'show-browser':
+                showApplication('browser');
+                break;
+            case 'show-mail':
+                showApplication('mail');
+                break;
+            case 'show-fileviewer':
+                showApplication('pdf-viewer');
+                break;
+            case 'show-text-editor':
+                showApplication('text-editor');
+                break;
+            case 'minimize-window':
+                minimizeActiveWindow();
+                break;
+            case 'maximize-window':
+                maximizeActiveWindow();
+                break;
+            default:
+                console.log(`No handler for action: ${action}`);
+                break;
         }
-        return;
-    } else if (action === 'preferences') {
-        showSettings();
-        return;
-    } else if (action === 'refresh-ui') {
-        refreshUserInterface();
-        return;
-    }
-    
-    // Window control actions
-    if (action === 'minimize-window') {
-        minimizeActiveWindow();
-        return;
-    } else if (action === 'maximize-window') {
-        maximizeActiveWindow();
-        return;
-    }
-    
-    // Application-specific actions
-    switch (activeWindow) {
-        case 'terminal':
-            handleTerminalAction(action);
-            break;
-        case 'browser':
-            handleBrowserAction(action);
-            break;
-        case 'mail':
-            handleMailAction(action);
-            break;
-        case 'pdf-viewer':
-            handlePdfViewerAction(action);
-            break;
-        default:
-            console.log(`Action '${action}' not implemented for ${activeWindow}`);
-            break;
     }
 }
 
@@ -617,6 +704,53 @@ function handlePdfViewerAction(action) {
 }
 
 /**
+ * Handle text editor actions
+ * @param {string} action - The action to perform
+ */
+function handleTextEditorAction(action) {
+    console.log(`Handling text editor action: ${action}`);
+    
+    const textEditor = document.getElementById('text-editor');
+    if (!textEditor) {
+        console.error('Text editor not found');
+        return;
+    }
+    
+    switch (action) {
+        case 'new-text-file':
+            // Dispatch a custom event that our text editor can listen for
+            textEditor.dispatchEvent(new CustomEvent('new-file'));
+            break;
+        case 'save-text-file':
+            // Dispatch a custom event that our text editor can listen for
+            textEditor.dispatchEvent(new CustomEvent('save-file'));
+            break;
+        case 'close-text-editor':
+            textEditor.classList.add('minimized');
+            break;
+        case 'cut-text':
+            document.execCommand('cut');
+            break;
+        case 'copy-text':
+            document.execCommand('copy');
+            break;
+        case 'paste-text':
+            document.execCommand('paste');
+            break;
+        case 'select-all-text':
+            // Find the text editor textarea and select all text
+            const textarea = textEditor.querySelector('textarea');
+            if (textarea) {
+                textarea.select();
+            }
+            break;
+        default:
+            console.log(`Unhandled text editor action: ${action}`);
+            break;
+    }
+}
+
+/**
  * Minimize the active window
  */
 function minimizeActiveWindow() {
@@ -648,30 +782,47 @@ function maximizeActiveWindow() {
 }
 
 /**
- * Show an application window
- * @param {string} appId - The ID of the application window to show
+ * Show a specific application
+ * @param {string} appId - ID of the application to show
  */
 function showApplication(appId) {
-    const app = document.getElementById(appId);
-    if (!app) return;
+    console.log(`Showing application: ${appId}`);
     
-    // Show the window
-    app.classList.remove('minimized');
+    // Check if a WindowManager instance exists for this app
+    if (window.windowManagers && window.windowManagers[appId]) {
+        // Use the WindowManager instance to show the window
+        window.windowManagers[appId].show();
+        return;
+    }
     
-    // Update dock icon
+    // Fallback to direct DOM manipulation if no WindowManager is available
+    const element = document.getElementById(appId);
+    if (!element) {
+        console.error(`Application element not found: ${appId}`);
+        return;
+    }
+    
+    // Show the application window
+    element.classList.remove('minimized');
+    
+    // Set it as the active window
+    setActiveWindow(appId);
+    
+    // Update dock icon if it exists
     const dockIcon = document.getElementById(`${appId}-dock-icon`);
     if (dockIcon) {
         dockIcon.classList.add('active');
     }
     
-    // Bring to front with simple z-index
-    document.querySelectorAll('.window-container').forEach(win => {
-        win.style.zIndex = '100';
-    });
-    app.style.zIndex = '101';
-    
-    // Set as active window
-    setActiveWindow(appId);
+    // Special handling for certain apps
+    if (appId === 'text-editor') {
+        // For text editor, if no file is open, create a new one
+        const textEditorContent = element.querySelector('.text-editor-content');
+        if (textEditorContent && !textEditorContent.textContent.trim()) {
+            // This will be handled by the text editor's internal logic
+            element.dispatchEvent(new CustomEvent('new-file'));
+        }
+    }
 }
 
 /**
@@ -723,27 +874,61 @@ function ensureLogoMenuWorks() {
 }
 
 /**
- * Force refresh the user interface
+ * Force refresh the entire UI
+ * This is useful for fixing visual state issues
  */
-function refreshUserInterface() {
-    console.log('Force refreshing UI...');
+export function refreshUserInterface() {
+    console.log('Forcing UI refresh...');
     
-    // Reset menu bar
-    initialized = false;
+    // Hide all menus
+    hideAllMenus();
     
-    // Remove existing dropdowns
-    document.querySelectorAll('.menu-dropdown').forEach(dropdown => {
-        dropdown.remove();
+    // Restore saved theme
+    const savedTheme = localStorage.getItem('theme');
+    const themeToApply = savedTheme === 'dark' ? 'dark' : 'light';
+    document.body.classList.toggle('dark-theme', themeToApply === 'dark');
+    
+    // Restore saved font size
+    const savedFontSize = localStorage.getItem('font-size') || '13';
+    document.documentElement.style.setProperty('--base-font-size', `${savedFontSize}px`);
+    
+    // Restore saved wallpaper
+    const defaultWallpaper = 'img/wallpapers/gradient.jpg';
+    const savedWallpaper = localStorage.getItem('background') || defaultWallpaper;
+    document.body.style.backgroundImage = `url('${savedWallpaper}')`;
+    document.body.style.setProperty('background-image', `url('${savedWallpaper}')`, 'important');
+    
+    // Ensure all dock icons are clickable
+    document.querySelectorAll('.dock-item').forEach(icon => {
+        icon.style.pointerEvents = 'auto';
+        icon.style.cursor = 'pointer';
+        icon.style.position = 'relative';
+        icon.style.zIndex = '9999';
+        
+        // Make sure images inside don't block clicks
+        const img = icon.querySelector('img');
+        if (img) {
+            img.style.pointerEvents = 'none';
+        }
     });
     
-    // Reinitialize menu bar
-    initializeMenuBar();
+    // Ensure menu bar items are clickable
+    document.querySelectorAll('.menu-item, .menu-bar-logo').forEach(item => {
+        item.style.pointerEvents = 'auto';
+        item.style.cursor = 'pointer';
+    });
     
-    // Update menus for active window
+    // Ensure windows have proper z-index
+    document.querySelectorAll('.window-container').forEach(win => {
+        if (!win.classList.contains('minimized')) {
+            win.style.zIndex = win.classList.contains('window-focused') ? '201' : '200';
+        }
+    });
+    
+    // Re-update the active window state
     updateMenus();
     
-    // Alert user
-    alert('UI has been refreshed!');
+    console.log('UI refresh complete!');
 }
 
 /**
