@@ -424,4 +424,53 @@
   background-color: #e9f7ef !important;
   border: 1px solid #a3e4b5 !important;
   color: #27ae60;
-} 
+}
+
+/* --- Browser App --- */
+.browser-container .window-content {
+    display: flex; 
+    flex-direction: column;
+    padding: 0; 
+    height: 100%; 
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.browser-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 5px 8px; 
+    background-color: #f0f0f0; 
+    border-bottom: 1px solid #ccc; 
+    flex: 0 0 auto; 
+}
+
+.browser-display-area {
+    flex: 1 1 auto; 
+    overflow: hidden;
+    background-color: #fff; 
+    position: relative; /* Needed for absolute positioning of iframe */
+    padding: 0; /* Ensure no padding */
+    margin: 0; /* Ensure no margin */
+}
+
+.browser-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block; 
+    /* Force iframe to fill parent boundaries absolutely */
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.browser-home {
+    padding: 30px;
+    height: 100%; 
+    overflow-y: auto; 
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+/* ... rest of browser styles ... */ 

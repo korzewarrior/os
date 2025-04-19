@@ -90,25 +90,30 @@
         
         <div class="browser-toolbar">
             <div class="browser-navigation">
-                <button class="nav-button back-button" disabled>←</button>
-                <button class="nav-button forward-button" disabled>→</button>
-                <button class="nav-button refresh-button">↻</button>
+                <button class="nav-button back-button" title="Back" disabled>←</button>
+                <button class="nav-button forward-button" title="Forward" disabled>→</button>
+                <button class="nav-button refresh-button" title="Refresh">↻</button>
+                <button class="nav-button home-button" title="Home">⌂</button>
             </div>
             <div class="address-bar">
-                <input type="text" id="url-input" placeholder="Enter URL">
+                <input type="text" id="url-input" placeholder="Enter URL or search query">
             </div>
         </div>
         
         <div class="browser-content window-content">
-            <div id="browser-display">
+            <div id="browser-display" class="browser-display-area">
                 <div class="browser-home">
                     <h2>Browser Home</h2>
-                    <p>Enter a URL in the address bar or choose from the bookmarks below:</p>
+                    <p>Enter a URL or choose a link:</p>
                     <div class="bookmarks">
-                        <div class="bookmark" data-url="https://github.com">GitHub</div>
-                        <div class="bookmark" data-url="https://google.com">Google</div>
-                        <div class="bookmark" data-url="https://developer.mozilla.org">MDN</div>
+                        <div class="bookmark" data-url="https://korze.org">korze.org</div>
+                        <div class="bookmark" data-url="https://leviathan.korze.org">Leviathan Game</div>
+                        <div class="bookmark" data-url="https://github.com/korzewarrior">GitHub</div>
+                        <div class="bookmark" data-url="https://instagram.com/jamesdotpictures">Photography</div>
                     </div>
+                    <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                        Note: Loading external sites may be blocked by the target website.
+                    </p>
                 </div>
             </div>
         </div>

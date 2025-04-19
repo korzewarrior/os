@@ -8,217 +8,268 @@ let browserWindow;
 export function initializeBrowser() {
     console.log('Browser module initializing...');
     
+    const browserContainer = document.getElementById('browser');
     const urlInput = document.getElementById('url-input');
-    const browserDisplay = document.getElementById('browser-display');
-    const backButton = document.querySelector('.back-button');
-    const forwardButton = document.querySelector('.forward-button');
-    const refreshButton = document.querySelector('.refresh-button');
+    const browserDisplayArea = document.getElementById('browser-display'); // Area holding home or iframe
+    const backButton = browserContainer.querySelector('.back-button');
+    const forwardButton = browserContainer.querySelector('.forward-button');
+    const refreshButton = browserContainer.querySelector('.refresh-button');
+    const homeButton = browserContainer.querySelector('.home-button'); // Get home button
+    const homePageElement = browserDisplayArea.querySelector('.browser-home'); // Get reference to home page div
     
-    // Initialize window manager for browser
-    // REMOVED: browserWindow = createWindowManager('browser', { ... });
-    // The window manager is already created globally in script.js
-    
-    // Browser history
-    const history = [];
-    let currentHistoryIndex = -1;
-    
-    // Navigate to a URL
-    function navigateTo(url) {
-        // Normalize URL (add https if missing)
-        if (!url.match(/^https?:\/\//i)) {
-            url = 'https://' + url;
+    let iframe = null; // Reference to the iframe element
+    let currentUrl = 'about:home'; // Special internal URL for home
+    const HOME_URL = 'about:home';
+
+    // --- Browser History --- 
+    let history = [HOME_URL]; // Start with home page in history
+    let currentHistoryIndex = 0;
+    let isNavigatingHistory = false; // Flag to prevent history loops
+
+    // Function to create or get the iframe
+    function getOrCreateIframe() {
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.className = 'browser-iframe'; // Assign class for potential styling
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            // Consider security implications - sandboxing is important
+            iframe.sandbox = "allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation";
+            iframe.referrerpolicy = "strict-origin-when-cross-origin";
+
+            iframe.onload = () => {
+                console.log('Iframe loaded. Attempting to read final location from src:', iframe.src);
+                let finalUrl = null;
+                if (iframe.contentWindow) {
+                    try {
+                        // Try reading the final location after load/redirects
+                        finalUrl = iframe.contentWindow.location.href;
+                        if (finalUrl !== 'about:blank') {
+                            console.log('Successfully read iframe location:', finalUrl);
+                            currentUrl = finalUrl; // Update our tracked URL
+                            urlInput.value = currentUrl; // Update the bar
+                        } else {
+                            console.log('Iframe location is about:blank, keeping requested URL.');
+                            urlInput.value = currentUrl; // Keep the URL we set
+                            finalUrl = currentUrl; // Consider the requested URL as final for history
+                        }
+                    } catch (e) {
+                        console.warn('Could not access iframe location (cross-origin?). Displaying requested URL.');
+                        // Fallback: Keep the URL bar showing the URL we initially requested
+                        urlInput.value = currentUrl; 
+                        finalUrl = currentUrl; // Use the requested URL for history state
+                    }
+                } else {
+                    console.warn('Cannot access iframe contentWindow after load.');
+                    urlInput.value = currentUrl; // Fallback
+                    finalUrl = currentUrl;
+                }
+                
+                // Potentially update history if the final URL differs from the last entry?
+                // This is complex due to redirects. Let's keep history based on user actions for now.
+                // if (finalUrl && history[currentHistoryIndex] !== finalUrl) { ... }
+                
+                updateNavigationButtons(); // Update buttons based on history index
+            };
+            iframe.onerror = (e) => {
+                console.error('Iframe loading error:', e);
+                showErrorPage(`Failed to load ${currentUrl}. The website might block embedding.`);
+            };
         }
+        return iframe;
+    }
+
+    // Function to show the home page content
+    function showHomePage() {
+        console.log('Showing home page');
+        isNavigatingHistory = true; // Set flag when navigating internally
+        if (iframe && iframe.parentNode) {
+            browserDisplayArea.removeChild(iframe);
+            iframe = null; 
+        }
+        if (homePageElement) homePageElement.style.display = 'block';
+        const errorMsg = browserDisplayArea.querySelector('.browser-error');
+        if (errorMsg) browserDisplayArea.removeChild(errorMsg);
         
-        try {
-            // In a real implementation, we would load the URL in an iframe
-            // For this demo, we'll simulate browser behavior
-            
-            // Add to history
+        urlInput.value = ''; 
+        // Check if home is already the current entry
+        if (history[currentHistoryIndex] !== HOME_URL) {
+             // If navigating home explicitly, treat it like a new navigation
             if (currentHistoryIndex < history.length - 1) {
-                // If we navigated back and now navigating to a new URL, truncate history
+                history.splice(currentHistoryIndex + 1); // Clear forward history
+            }
+            history.push(HOME_URL);
+            currentHistoryIndex = history.length - 1;
+        }
+        updateNavigationButtons();
+        isNavigatingHistory = false;
+    }
+
+    // Function to show an error message
+    function showErrorPage(message) {
+        console.error('Browser Error:', message);
+        if (iframe && iframe.parentNode) {
+            browserDisplayArea.removeChild(iframe);
+            iframe = null;
+        }
+        if (homePageElement) homePageElement.style.display = 'none'; // Hide home content
+        
+        // Remove previous error
+        const existingError = browserDisplayArea.querySelector('.browser-error');
+        if (existingError) browserDisplayArea.removeChild(existingError);
+
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'browser-error'; // Add class for styling
+        errorDiv.innerHTML = `<h2>Navigation Error</h2><p>${message}</p><button class="go-home-button">Go Home</button>`;
+        errorDiv.querySelector('.go-home-button').addEventListener('click', showHomePage);
+        browserDisplayArea.appendChild(errorDiv);
+        
+        currentUrl = 'about:error';
+        urlInput.value = '';
+        updateNavigationButtons();
+    }
+
+    // Navigate to a URL, managing history
+    function navigateTo(url, fromHistory = false) {
+        console.log(`Navigate to: ${url}, From History: ${fromHistory}`);
+        
+        // If called directly (not from back/forward), update history
+        if (!fromHistory) {
+            isNavigatingHistory = true; 
+            if (currentHistoryIndex < history.length - 1) {
+                console.log('Clearing forward history');
                 history.splice(currentHistoryIndex + 1);
             }
-            
-            history.push(url);
-            currentHistoryIndex = history.length - 1;
-            
-            // Update URL in address bar
-            urlInput.value = url;
-            
-            // Update browser content
-            simulateBrowserContent(url);
-            
-            // Update navigation buttons
-            updateNavigationButtons();
+            if (history[currentHistoryIndex] !== url) {
+                 history.push(url);
+                 currentHistoryIndex = history.length - 1;
+            }
+             isNavigatingHistory = false; 
+        }
+        
+        // Handle home URL separately
+        if (!url || url === HOME_URL) {
+            showHomePage(); 
+            return;
+        }
+
+        // Prepare the final target URL (add https, handle search)
+        let targetUrl = url;
+        if (!targetUrl.match(/^https?:\/\//i) && !targetUrl.startsWith('http://localhost') && !targetUrl.startsWith('file://')) {
+            if (targetUrl.includes('.') || targetUrl.startsWith('localhost')) { 
+                targetUrl = 'https://' + targetUrl;
+            } else {
+                targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`;
+            }
+        }
+        
+        // --- Key Change: Update currentUrl *before* setting iframe.src --- 
+        currentUrl = targetUrl; // Update our internal tracker to the intended URL
+        // -----------------------------------------------------------------
+        
+        urlInput.value = targetUrl; // Update address bar immediately
+        
+        const currentIframe = getOrCreateIframe();
+        
+        // Ensure home page and any errors are hidden
+        if (homePageElement) homePageElement.style.display = 'none';
+        const errorMsg = browserDisplayArea.querySelector('.browser-error');
+        if (errorMsg) browserDisplayArea.removeChild(errorMsg);
+        if (!currentIframe.parentNode) {
+            browserDisplayArea.appendChild(currentIframe);
+        }
+
+        console.log('Setting iframe src:', targetUrl);
+        try {
+             // Avoid unnecessary reloads if src is already correct
+             // Note: This might prevent reloads if user types same URL again, handled by Refresh button.
+             if (currentIframe.src !== targetUrl) { 
+                  currentIframe.src = targetUrl;
+             } else {
+                 updateNavigationButtons(); // Already on page, just update buttons
+             }
         } catch (error) {
-            console.error('Navigation error:', error);
-            browserDisplay.innerHTML = `
-                <div class="browser-error">
-                    <h2>Unable to load URL</h2>
-                    <p>${error.message}</p>
-                </div>
-            `;
-        }
-    }
-    
-    // Simulate browser content
-    function simulateBrowserContent(url) {
-        // For demonstration purposes, create a simulated page based on URL
-        let content = '';
-        
-        // Extract domain for display
-        const domain = url.replace(/^https?:\/\//i, '').split('/')[0];
-        
-        if (url.includes('github.com')) {
-            content = `
-                <div class="simulated-page github">
-                    <div class="browser-header-bar">
-                        <img src="https://github.githubassets.com/favicons/favicon.svg" class="site-icon">
-                        <span>${domain}</span>
-                    </div>
-                    <div class="browser-page-content">
-                        <h1>GitHub</h1>
-                        <p>Welcome to GitHub - where the world builds software.</p>
-                        <div class="repo-list">
-                            <div class="repo">
-                                <h3>example/repo1</h3>
-                                <p>A sample repository</p>
-                            </div>
-                            <div class="repo">
-                                <h3>example/repo2</h3>
-                                <p>Another sample repository</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (url.includes('google.com')) {
-            content = `
-                <div class="simulated-page google">
-                    <div class="browser-header-bar">
-                        <img src="https://www.google.com/favicon.ico" class="site-icon">
-                        <span>${domain}</span>
-                    </div>
-                    <div class="browser-page-content">
-                        <div class="google-logo">Google</div>
-                        <div class="search-bar">
-                            <input type="text" placeholder="Search Google">
-                            <button>Search</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (url.includes('developer.mozilla.org')) {
-            content = `
-                <div class="simulated-page mdn">
-                    <div class="browser-header-bar">
-                        <img src="https://developer.mozilla.org/favicon-48x48.png" class="site-icon">
-                        <span>${domain}</span>
-                    </div>
-                    <div class="browser-page-content">
-                        <h1>MDN Web Docs</h1>
-                        <p>Resources for developers, by developers.</p>
-                        <div class="mdn-content">
-                            <h2>Web Technologies</h2>
-                            <ul>
-                                <li>HTML</li>
-                                <li>CSS</li>
-                                <li>JavaScript</li>
-                                <li>Web APIs</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            content = `
-                <div class="simulated-page generic">
-                    <div class="browser-header-bar">
-                        <span>${domain}</span>
-                    </div>
-                    <div class="browser-page-content">
-                        <h1>${domain}</h1>
-                        <p>This is a simulated view of ${url}</p>
-                        <div class="sample-content">
-                            <h2>Sample Page Content</h2>
-                            <p>In a real browser, this would display the actual webpage content.</p>
-                            <p>For this demo, we're showing a placeholder for ${url}.</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+             console.error('Error setting iframe src:', error);
+             showErrorPage(`Could not load the requested URL.`);
         }
         
-        browserDisplay.innerHTML = content;
+        // Update buttons based on OUR history stack immediately after initiating navigation
+        updateNavigationButtons(); 
     }
     
-    // Update navigation buttons state
+    // Update navigation buttons based on our internal history
     function updateNavigationButtons() {
+        console.log(`Updating nav buttons. Index: ${currentHistoryIndex}, History Length: ${history.length}`);
         backButton.disabled = currentHistoryIndex <= 0;
         forwardButton.disabled = currentHistoryIndex >= history.length - 1;
+        // Disable refresh only if truly on the initial home state (index 0)
+        refreshButton.disabled = history.length === 1 && currentHistoryIndex === 0 && history[0] === HOME_URL;
     }
     
-    // Navigation button event handlers
+    // --- Event Listeners --- 
+
     backButton.addEventListener('click', () => {
         if (currentHistoryIndex > 0) {
+            isNavigatingHistory = true; // Set flag
             currentHistoryIndex--;
-            urlInput.value = history[currentHistoryIndex];
-            simulateBrowserContent(history[currentHistoryIndex]);
-            updateNavigationButtons();
+            console.log(`History Back: Navigating to index ${currentHistoryIndex}, URL: ${history[currentHistoryIndex]}`);
+            navigateTo(history[currentHistoryIndex], true); // Navigate using internal history
+            isNavigatingHistory = false; // Clear flag
         }
     });
     
     forwardButton.addEventListener('click', () => {
         if (currentHistoryIndex < history.length - 1) {
+            isNavigatingHistory = true; // Set flag
             currentHistoryIndex++;
-            urlInput.value = history[currentHistoryIndex];
-            simulateBrowserContent(history[currentHistoryIndex]);
-            updateNavigationButtons();
+            console.log(`History Forward: Navigating to index ${currentHistoryIndex}, URL: ${history[currentHistoryIndex]}`);
+            navigateTo(history[currentHistoryIndex], true); // Navigate using internal history
+            isNavigatingHistory = false; // Clear flag
         }
     });
     
     refreshButton.addEventListener('click', () => {
-        if (history.length > 0) {
-            simulateBrowserContent(history[currentHistoryIndex]);
-        }
-    });
-    
-    // URL input event handler
-    urlInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            navigateTo(urlInput.value);
-        }
-    });
-    
-    // Set up bookmark clicks
-    document.querySelectorAll('.bookmark').forEach(bookmark => {
-        bookmark.addEventListener('click', () => {
-            navigateTo(bookmark.dataset.url);
-        });
-    });
-    
-    // Handle browser resizing
-    const resizeObserver = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            // Adjust any internal elements that need to respond to browser resizing
-            const browserContent = entry.target.querySelector('.browser-content');
-            if (browserContent) {
-                // Adjust height to fill available space
-                const headerHeight = entry.target.querySelector('.browser-header').offsetHeight;
-                const toolbarHeight = entry.target.querySelector('.browser-toolbar').offsetHeight;
-                browserContent.style.height = `calc(100% - ${headerHeight + toolbarHeight}px)`;
-            }
+        const currentHistoryUrl = history[currentHistoryIndex];
+        console.log('Refresh clicked. Current history URL:', currentHistoryUrl);
+        if (iframe && currentHistoryUrl !== HOME_URL) {
+            try {
+                // Force reload by setting src again, or use reload()
+                // Setting src might be slightly more robust if reload() is blocked
+                console.log('Reloading iframe src:', currentHistoryUrl);
+                iframe.src = currentHistoryUrl; 
+                // iframe.contentWindow.location.reload(); // Alternative
+            } catch (e) { 
+                console.error('Refresh navigation failed:', e);
+                showErrorPage('Could not reload the page.');
+            } 
+        } else if (currentHistoryUrl === HOME_URL) {
+             console.log('Ignoring refresh on home page view.');
         }
     });
 
-    // Start observing the browser container
-    const browserContainer = document.getElementById('browser');
-    if (browserContainer) {
-        resizeObserver.observe(browserContainer);
-    }
+    homeButton.addEventListener('click', showHomePage);
     
-    // Return browser controller for possible external use
-    return {
-        navigateTo
-    };
-} 
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && urlInput.value.trim() !== '') {
+            navigateTo(urlInput.value.trim());
+        }
+    });
+    
+    // Set up bookmark clicks using event delegation on the display area
+    browserDisplayArea.addEventListener('click', (e) => {
+        const bookmark = e.target.closest('.bookmark');
+        if (bookmark && bookmark.dataset.url) {
+             e.preventDefault(); // Prevent default link behavior if it were an <a>
+             navigateTo(bookmark.dataset.url);
+        }
+    });
+
+    // --- Initial Setup ---    
+    showHomePage(); // Ensure home page is shown initially
+    console.log('Browser module initialized.');
+}
+
+// Removed setupBrowserResizeObserver function definition
+
+// Removed initial calls to setupBrowserResizeObserver outside the main function 
