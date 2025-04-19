@@ -24,7 +24,7 @@ export function initializeTerminal() {
     }
     
     // File system and terminal state
-    let currentDirectory = '/home/user';
+    let currentDirectory = '/home/korze';
     let commandHistory = [];
     let historyIndex = -1;
     
@@ -52,24 +52,42 @@ export function initializeTerminal() {
     function resetTerminal() {
         clearTerminal();
         appendToTerminal(`
-            <p>Type <strong>help</strong> to see available commands</p>
-            <p>Use <strong>ctrl+c</strong> to reset the terminal</p>
+<pre class="ascii-art" style="color: #66c2cd;">
+        _,met$$$$$gg.           korze<span style="color: var(--text-primary)">@korzeOS</span>
+     ,g$$$$$$$$$$$$$$$P.        --------------------
+   ,g$$P""""Y$$""""""Y$$..      <span style="color: #f9a825">OS:</span> korzeOS 1.0 x86_64
+  ,$$P'    "$$"     "$b$""$$.    <span style="color: #f9a825">Host:</span> Browser Environment
+ ',$$P      Y$       "$P'$P$.   <span style="color: #f9a825">Kernel:</span> ${navigator.platform || 'Web API'}
+ ',$$P      Y$       "$P'$P$.   <span style="color: #f9a825">Uptime:</span> ${Math.floor(performance.now() / 60000)} mins
+ ",$$"      "$}       "$L$"$,   <span style="color: #f9a825">Packages:</span> ${Object.keys(fileSystem['/'].contents.bin.contents).length} (simulated)
+   "$.       "$;        "$;$"   <span style="color: #f9a825">Shell:</span> web-sh 1.0
+    "$.       "$$.     .$$P",    <span style="color: #f9a825">Resolution:</span> ${window.screen.width}x${window.screen.height}
+      "$.       "Y$bggdP"Y$,     <span style="color: #f9a825">Terminal:</span> WebTerm
+       "Y$.        """Y$P""      <span style="color: #f9a825">CPU:</span> ${navigator.hardwareConcurrency || 'Virtual'} Cores
+          "Y$.                <span style="color: #f9a825">GPU:</span> ${getGpuInfo() || 'Browser Renderer'}
+             "Y$.            <span style="color: #f9a825">Memory:</span> Simulated 8GiB
+                "YP.
+</pre>
+            <p>Welcome to korzeOS! Type <strong>help</strong> to see available commands.</p>
             <br>
-            
-            <p>Quick command reference:</p>
-            <ul>
-                <li><strong>ls</strong><br>List files in current directory</li>
-                <li><strong>cd [dir]</strong><br>Change directory</li>
-                <li><strong>pwd</strong><br>Show current directory path</li>
-                <li><strong>cat [file]</strong><br>Display file contents</li>
-                <li><strong>whoami</strong><br>About user info</li>
-                <li><strong>clear</strong><br>Clear terminal screen</li>
-                <li><strong>help</strong><br>Show all commands and details</li>
-                <li><strong>browser</strong><br>Open the web browser</li>
-            </ul>
         `);
         
         updatePrompt();
+    }
+    
+    // Helper to get GPU info (simple version)
+    function getGpuInfo() {
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                }
+            }
+        } catch (e) {}
+        return null;
     }
     
     // File system implementation

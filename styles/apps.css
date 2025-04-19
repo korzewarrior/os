@@ -1,25 +1,27 @@
-/* Terminal specific styles - immune to theme changes */
+/* Terminal specific styles - now respects themes */
 .terminal-container {
-  width: 800px;
-  height: 600px;
-  background-color: #1e1e1e !important; /* Force dark background */
-  color: #f0f0f0 !important; /* Force light text */
+  /* Removed fixed width/height, let base styles handle */
+  background-color: var(--window-bg); /* Use theme variable */
+  color: var(--text-primary); /* Use theme variable */
 }
 
 .terminal-container .terminal-header {
-  background-color: #303030 !important;
-  border-bottom: 1px solid #404040 !important;
+  background-color: var(--window-header-bg); /* Use theme variable */
+  border-bottom: 1px solid var(--window-header-border); /* Use theme variable */
 }
 
 .terminal-container .terminal-header .terminal-title {
-  color: #aaa !important;
+  color: var(--text-secondary); /* Use theme variable */
 }
 
 .terminal-content {
   padding: 15px;
   height: calc(100% - var(--header-height-tall));
   overflow-y: auto;
-  background-color: #1e1e1e !important;
+  background-color: var(--window-bg-alt); /* Use theme variable */
+  font-family: var(--font-monospace); /* Ensure monospaced font */
+  font-size: calc(var(--base-font-size) * 1.0); /* Consistent font size */
+  line-height: 1.5;
 }
 
 .terminal-output {
@@ -32,7 +34,7 @@
 }
 
 .prompt-symbol {
-  color: #8ae234 !important;
+  color: var(--accent-color); /* Use theme accent color */
   margin-right: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -41,28 +43,29 @@
 }
 
 #command-input {
-  background: transparent !important;
+  background: transparent;
   border: none;
-  color: #f0f0f0 !important;
+  color: var(--text-primary); /* Use theme variable */
   font-family: var(--font-monospace);
-  font-size: 14px;
+  font-size: inherit; /* Inherit from .terminal-content */
   flex-grow: 1;
   outline: none;
 }
 
-/* Terminal text styles */
+/* Terminal text styles - use variables */
 .terminal-container h2, 
 .terminal-container h3, 
 .terminal-container h4 {
-  color: #66c2cd !important;
+  color: var(--accent-color); /* Use theme accent */
 }
 
 .terminal-container strong {
-  color: #ad7fa8 !important;
+  color: var(--text-emphasis); /* Use a suitable emphasis color variable */
 }
 
+/* Ensure ASCII art uses monospace and theme color */
 .ascii-art {
-  color: #66c2cd !important;
+  color: var(--text-secondary); /* Use theme variable */
   line-height: 1.2;
   margin: 20px 0;
   font-family: var(--font-monospace);

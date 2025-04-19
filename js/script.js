@@ -9,7 +9,6 @@ import { initializeDesktop } from './desktop.js';
 import { initializeMenuBar } from './menu-bar.js';
 import { Program, ProgramManager } from './program.js';
 import { initializeDebug, autoRepair } from './debug.js';
-import { TextEditorProgram } from './programs/text-editor.js';
 
 // Make Program and ProgramManager globally available
 window.Program = Program;
@@ -151,12 +150,6 @@ function initializeWindowManagement() {
         minimized: true
     });
     
-    createWindowManager('text-editor', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true
-    });
-    
     createWindowManager('mail', {
         initialWidth: '700px',
         initialHeight: '500px',
@@ -164,12 +157,6 @@ function initializeWindowManagement() {
     });
     
     createWindowManager('pdf-viewer', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true
-    });
-    
-    createWindowManager('about', {
         initialWidth: '700px',
         initialHeight: '500px',
         minimized: true
@@ -191,10 +178,11 @@ function initializeApplications() {
     initializeDesktop();
     initializeMenuBar();
     
-    // Initialize any app using the TextEditorProgram if it exists
-    if (typeof TextEditorProgram === 'function') {
-        new TextEditorProgram();
-    }
+    // --- Dock Icon Listeners ---
+    // TODO: Add listeners for remaining dock icons if not handled elsewhere
+    // Example:
+    // document.getElementById('terminal-dock-icon')?.addEventListener('click', () => ProgramManager.launch('terminal')?.show());
+    // ... other examples ...
 }
 
 /**

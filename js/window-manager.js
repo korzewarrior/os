@@ -32,7 +32,8 @@ export class WindowManager {
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transform: 'translate(-50%, -50%)'
+            transform: 'translate(-50%, -50%)',
+            zIndex: '100'
         };
         
         // Register this window manager in the global registry for emergency-fix.js to access
@@ -112,110 +113,109 @@ export class WindowManager {
     setupDragging() {
         if (!this.header) return;
         
-        // Remove any existing event listeners by cloning the header
-        const newHeader = this.header.cloneNode(true);
-        this.header.parentNode.replaceChild(newHeader, this.header);
-        this.header = newHeader;
-        
-        // Set visual cues and ensure proper interaction
+        // Make header draggable visual cue
         this.header.style.cursor = 'grab';
-        this.header.style.pointerEvents = 'auto';
         
         let isDragging = false;
         let offsetX, offsetY;
         
-        // Rebind controls if they exist in the header
-        this.controlsContainer = this.header.querySelector('.window-controls');
-        if (this.controlsContainer) {
-            this.setupControls();
-        }
+        // Define handlers in the scope of setupDragging so they can reference each other
+        // and be removed correctly.
         
-        this.header.addEventListener('mousedown', (e) => {
-            // Don't drag if clicking controls or inputs
-            if (e.target.classList.contains('control') || 
-                e.target.tagName === 'INPUT' ||
-                e.target.tagName === 'BUTTON') {
-                return;
-            }
-            
-            // Prevent default browser behavior
-            e.preventDefault();
-            
-            // Ensure we're focused when beginning a drag operation
-            this.bringToFront();
-            
-            isDragging = true;
-            
-            // Save current visual position
-            const rect = this.element.getBoundingClientRect();
-            
-            // Calculate proper offset from mouse position
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
-            
-            // Position element explicitly
-            this.element.style.left = `${rect.left}px`;
-            this.element.style.top = `${rect.top}px`;
-            
-            // Remove transform to avoid jumping
-            this.element.style.transform = 'none';
-            this.element.classList.add('dragged');
-            
-            console.log(`[${this.id}] Drag started`);
-        });
-        
-        // Use document for mouse move/up to catch events outside the header
         const mouseMoveHandler = (e) => {
             if (!isDragging) return;
             
             // Prevent default browser behavior during drag
             e.preventDefault();
             
-            const x = e.clientX - offsetX;
-            const y = e.clientY - offsetY;
+            // Calculate new position based on initial offset
+            let x = e.clientX - offsetX;
+            let y = e.clientY - offsetY;
             
             // Apply boundaries to keep window within viewport
             const windowWidth = this.element.offsetWidth;
             const windowHeight = this.element.offsetHeight;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
+            const menuBarHeight = 24; // Assuming menu bar height is fixed
             
-            // Ensure at least part of the window is always visible and draggable
-            // (at least 100px of the window must remain in viewport)
-            const boundedX = Math.min(Math.max(x, -windowWidth + 100), viewportWidth - 100);
-            const boundedY = Math.min(Math.max(y, 0), viewportHeight - 50);
+            // Ensure at least 50px of the header is visible horizontally, and top edge doesn't go under menu bar
+            const boundedX = Math.min(Math.max(x, -windowWidth + 50), viewportWidth - 50);
+            const boundedY = Math.min(Math.max(y, menuBarHeight), viewportHeight - 30); // Keep bottom 30px clear
             
             this.element.style.left = `${boundedX}px`;
             this.element.style.top = `${boundedY}px`;
         };
         
-        const mouseUpHandler = () => {
+        const mouseUpHandler = (e) => {
             if (isDragging) {
                 isDragging = false;
-                console.log(`[${this.id}] Drag ended`);
-                
-                // Remove the dragged class
+                this.header.style.cursor = 'grab'; // Reset cursor
                 this.element.classList.remove('dragged');
                 
-                // Save current position in the originalState to enable returning to this position
+                // Remove listeners from document
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+                
+                console.log(`[${this.id}] Drag ended`);
+                
+                // Save current position after drag ends, only if not fullscreen
                 if (!this.element.classList.contains('fullscreen')) {
                     this.originalState.position = 'absolute';
                     this.originalState.top = this.element.style.top;
                     this.originalState.left = this.element.style.left;
-                    this.originalState.transform = 'none';
+                    this.originalState.transform = 'none'; // Position is now controlled by top/left
                 }
             }
         };
         
-        // Add the event listeners to document to ensure they work when mouse moves outside the header
-        document.addEventListener('mousemove', mouseMoveHandler);
-        document.addEventListener('mouseup', mouseUpHandler);
-        
-        // Store reference to these handlers for potential cleanup
-        this._dragHandlers = {
-            mousemove: mouseMoveHandler,
-            mouseup: mouseUpHandler
-        };
+        this.header.addEventListener('mousedown', (e) => {
+            // Only drag with the primary mouse button
+            if (e.button !== 0) return;
+            
+            // Don't drag if clicking controls or interactive elements within the header
+            if (e.target.classList.contains('control') ||
+                e.target.closest('.window-controls') || // Check parent controls div too
+                e.target.tagName === 'INPUT' ||
+                e.target.tagName === 'BUTTON' ||
+                e.target.tagName === 'SELECT' ||
+                e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // Prevent default text selection or other actions
+            e.preventDefault();
+            
+            // Bring window to front
+            this.bringToFront();
+            
+            isDragging = true;
+            this.header.style.cursor = 'grabbing'; // Change cursor during drag
+            
+            // --- Fix Start: Get position and lock it before adding .dragged ---
+            // 1. Get current visual position FIRST
+            const rect = this.element.getBoundingClientRect();
+
+            // 2. Lock position with inline styles BEFORE adding .dragged class
+            this.element.style.position = 'absolute';
+            this.element.style.left = `${rect.left}px`;
+            this.element.style.top = `${rect.top}px`;
+            this.element.style.transform = 'none'; // Explicitly remove transform here
+
+            // 3. Calculate offset based on the initial rect
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+
+            // 4. NOW add the dragged class (shouldn't cause a jump)
+            this.element.classList.add('dragged');
+            // --- Fix End ---
+
+            // Add listeners to the document to capture mouse move/up anywhere
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+            
+            console.log(`[${this.id}] Drag started`);
+        });
     }
     
     setupResizing() {
@@ -238,32 +238,29 @@ export class WindowManager {
             if (this.element.classList.contains('fullscreen')) return;
             
             isResizing = true;
-            
-            // Get current position and size before making any changes
+            e.preventDefault(); // Prevent default drag behavior
+            this.bringToFront();
+
+            // Get current visual position and size
             const rect = this.element.getBoundingClientRect();
             
-            // Smoothly transition from centered to absolute positioning
-            // Set position values first before changing position type or removing transform
-            // This prevents the jump that occurs when changing positioning models
-            this.element.style.width = `${rect.width}px`;
-            this.element.style.height = `${rect.height}px`;
+            // Explicitly set position style *before* removing transform
+            // This helps lock the current visual position
+            this.element.style.position = 'absolute'; 
             this.element.style.left = `${rect.left}px`;
             this.element.style.top = `${rect.top}px`;
+            this.element.style.width = `${rect.width}px`;
+            this.element.style.height = `${rect.height}px`;
             
-            // Now change the positioning attributes after position is explicitly set
-            this.element.style.position = 'absolute';
+            // Now remove the transform that might have been used for centering
             this.element.style.transform = 'none';
             
-            // Store the original width, height, and mouse position
+            // Store the original mouse position and dimensions for calculating delta
             originalWidth = rect.width;
             originalHeight = rect.height;
             originalX = e.clientX;
             originalY = e.clientY;
             
-            // Bring to front when resizing
-            this.bringToFront();
-            
-            e.preventDefault();
             console.log(`[${this.id}] Resize started`);
         });
         
@@ -342,44 +339,20 @@ export class WindowManager {
             
             // Show the window
             this.show(); // Use the show method which already handles focus
-            
-            // Remove active class from all dock icons and add to this one
-            document.querySelectorAll('.dock-item').forEach(icon => {
-                icon.classList.remove('active');
-            });
-            this.dockIcon.classList.add('active');
-            
-            // Add focused class to window
-            this.element.classList.add('window-focused');
-            
-            return false; // Ensure no further processing
-        });
-        
-        // Add visual feedback for interaction
-        this.dockIcon.addEventListener('mousedown', function(e) {
-            e.stopPropagation();
-            this.style.transform = 'scale(0.95)';
-        });
-        
-        this.dockIcon.addEventListener('mouseup', function(e) {
-            e.stopPropagation();
-            this.style.transform = 'scale(1)';
-        });
-        
-        this.dockIcon.addEventListener('mouseleave', function(e) {
-            e.stopPropagation();
-            this.style.transform = 'scale(1)';
         });
     }
     
     setupWindowFocus() {
         // Add a click handler to the entire window to bring it to front
         this.element.addEventListener('mousedown', (e) => {
-            // Only do this if not clicking on controls
-            if (!e.target.classList.contains('control')) {
+            // Only prevent bringing to front if clicking specific controls in the header
+            const clickedControl = e.target.closest('.window-controls .control');
+            
+            if (!clickedControl) {
                 this.bringToFront();
             }
-        });
+            // Allow event to propagate for other interactions like text selection in content
+        }, true); // Use capture phase to ensure focus happens early
     }
     
     minimize() {
@@ -394,39 +367,17 @@ export class WindowManager {
         console.log(`[${this.id}] Window minimized`);
         
         // Call the onMinimize callback
-        this.options.onMinimize();
+        if (typeof this.options.onMinimize === 'function') {
+            this.options.onMinimize();
+        }
     }
     
-    show() {
-        // Remove minimized class
-        this.element.classList.remove('minimized');
-        
-        // Bring to front
-        this.bringToFront();
-        
-        console.log(`[${this.id}] Window shown`);
-        
-        // Update the active window state in menu-bar.js if available
-        if (typeof setActiveWindow === 'function') {
-            try {
-                setActiveWindow(this.id);
-            } catch (e) {
-                console.error(`Error calling setActiveWindow: ${e}`);
-            }
-        }
-        
-        // Call show callbacks
-        this.onShowCallbacks.forEach(callback => callback());
+    maximize() {
+        // Implementation of maximize method
     }
     
-    /**
-     * Add a callback function to be called when the window is shown
-     * @param {Function} callback - The function to call
-     */
-    addOnShowCallback(callback) {
-        if (typeof callback === 'function') {
-            this.onShowCallbacks.push(callback);
-        }
+    restore() {
+        // Implementation of restore method
     }
     
     toggleFullscreen() {
@@ -451,7 +402,9 @@ export class WindowManager {
             console.log(`[${this.id}] Window maximized`);
             
             // Call the onMaximize callback
-            this.options.onMaximize();
+            if (typeof this.options.onMaximize === 'function') {
+                this.options.onMaximize();
+            }
         } else {
             // Restore to previous state
             this.restoreOriginalState();
@@ -459,13 +412,59 @@ export class WindowManager {
             console.log(`[${this.id}] Window restored from fullscreen`);
             
             // Call the onRestore callback
-            this.options.onRestore();
+            if (typeof this.options.onRestore === 'function') {
+                this.options.onRestore();
+            }
+        }
+    }
+    
+    show() {
+        // Remove minimized class
+        this.element.classList.remove('minimized');
+        
+        // Bring to front
+        this.bringToFront();
+        
+        console.log(`[${this.id}] Window shown`);
+        
+        // Update the active window state in menu-bar.js if available
+        // Ensure setActiveWindow is actually defined globally or imported if needed
+        if (typeof setActiveWindow === 'function') { 
+            try {
+                setActiveWindow(this.id);
+            } catch (e) {
+                console.error(`Error calling setActiveWindow: ${e}`);
+            }
+        } else {
+            // console.warn('setActiveWindow function not found globally.');
+        }
+        
+        // Call show callbacks
+        this.onShowCallbacks.forEach(callback => callback());
+    }
+    
+    /**
+     * Add a callback function to be called when the window is shown
+     * @param {Function} callback - The function to call
+     */
+    addOnShowCallback(callback) {
+        if (typeof callback === 'function') {
+            this.onShowCallbacks.push(callback);
         }
     }
     
     saveCurrentState() {
         // Only save if we're not in fullscreen mode
         if (!this.element.classList.contains('fullscreen')) {
+            console.log(`[${this.id}] Saving state:`, { 
+                width: this.element.style.width, 
+                height: this.element.style.height,
+                position: this.element.style.position || 'absolute',
+                top: this.element.style.top || '50%',
+                left: this.element.style.left || '50%',
+                transform: this.element.style.transform || 'translate(-50%, -50%)'
+            }); // Log state being saved
+
             if (this.element.style.width) this.originalState.width = this.element.style.width;
             if (this.element.style.height) this.originalState.height = this.element.style.height;
             
@@ -474,18 +473,20 @@ export class WindowManager {
             this.originalState.top = this.element.style.top || '50%';
             this.originalState.left = this.element.style.left || '50%';
             this.originalState.transform = this.element.style.transform || 'translate(-50%, -50%)';
+            // zIndex is handled by bringToFront and restoreOriginalState
         }
     }
     
     restoreOriginalState() {
-        // Apply saved state
+        console.log(`[${this.id}] Restoring state to:`, this.originalState); // Log state being restored
+        // Apply saved state explicitly
         this.element.style.position = this.originalState.position;
         this.element.style.top = this.originalState.top;
         this.element.style.left = this.originalState.left;
-        this.element.style.transform = this.originalState.transform;
         this.element.style.width = this.originalState.width;
         this.element.style.height = this.originalState.height;
-        this.element.style.zIndex = this.originalState.zIndex;
+        this.element.style.transform = this.originalState.transform; // Ensure transform is restored
+        this.element.style.zIndex = this.originalState.zIndex || '100'; // Ensure zIndex is restored (with fallback)
     }
     
     bringToFront() {
@@ -525,4 +526,4 @@ export class WindowManager {
 // Create a factory function for easy window creation
 export function createWindowManager(id, options = {}) {
     return new WindowManager(id, options);
-} 
+}

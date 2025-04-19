@@ -50,21 +50,6 @@ const appMenus = {
         file: [
             { label: 'Open File...', action: 'open-pdf' }
         ]
-    },
-    'text-editor': {
-        file: [
-            { label: 'New', action: 'new-text-file' },
-            { label: 'Save', action: 'save-text-file' },
-            { separator: true },
-            { label: 'Close', action: 'close-text-editor' }
-        ],
-        edit: [
-            { label: 'Cut', action: 'cut-text' },
-            { label: 'Copy', action: 'copy-text' },
-            { label: 'Paste', action: 'paste-text' },
-            { separator: true },
-            { label: 'Select All', action: 'select-all-text' }
-        ]
     }
 };
 
@@ -77,15 +62,12 @@ const standardMenus = {
         { label: 'Terminal', action: 'show-terminal' },
         { label: 'Browser', action: 'show-browser' },
         { label: 'Mail', action: 'show-mail' },
-        { label: 'File Viewer', action: 'show-fileviewer' },
-        { label: 'Text Editor', action: 'show-text-editor' }
+        { label: 'File Viewer', action: 'show-fileviewer' }
     ]
 };
 
 // OS logo dropdown menu
 const logoMenu = [
-    { label: 'About This System', action: 'about' },
-    { separator: true },
     { label: 'System Preferences...', action: 'preferences' },
     { separator: true },
     { label: 'Terminal', action: 'show-terminal' },
@@ -408,8 +390,12 @@ function hideAllMenus() {
  * @param {string} windowId - ID of the window to set as active
  */
 export function setActiveWindow(windowId) {
+    console.log(`[Menu Bar] setActiveWindow called with ID: ${windowId}. Current active: ${activeWindow}`);
     // If same window is already active, no need to change
-    if (activeWindow === windowId) return;
+    if (activeWindow === windowId) {
+        console.log(`[Menu Bar] Window ${windowId} is already active.`);
+        // return; // Let's allow it to run through anyway to ensure menus update
+    }
     
     console.log(`Setting active window to: ${windowId}`);
     
@@ -467,10 +453,7 @@ function updateAppName() {
             appName = "Mail";
             break;
         case 'pdf-viewer':
-            appName = "File Viewer";
-            break;
-        case 'text-editor':
-            appName = "Text Editor";
+            appName = "PDF View";
             break;
     }
     
@@ -495,59 +478,56 @@ function updateMenus() {
         dropdown.innerHTML = '';
         
         // Get menu items based on active window
-        const menuItems = getMenuItemsForMenu(menuName);
+        const currentMenuItems = getMenuItemsForMenu(menuName);
         
-        // Create menu items
-        if (menuItems && menuItems.length > 0) {
-            menuItems.forEach(menuItem => {
-                if (menuItem.separator) {
-                    const separator = document.createElement('div');
-                    separator.className = 'dropdown-separator';
-                    separator.style.height = '1px';
-                    separator.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                    separator.style.margin = '5px 0';
-                    dropdown.appendChild(separator);
-                } else {
-                    const itemElement = document.createElement('div');
-                    itemElement.className = 'dropdown-item';
-                    itemElement.textContent = menuItem.label;
-                    itemElement.dataset.action = menuItem.action;
-                    itemElement.style.padding = '8px 15px';
-                    itemElement.style.color = 'var(--menu-text)';
-                    itemElement.style.cursor = 'pointer';
-                    itemElement.style.whiteSpace = 'nowrap';
-                    
-                    // Add hover effect
-                    itemElement.addEventListener('mouseover', function() {
-                        this.style.backgroundColor = 'var(--menu-hover)';
-                    });
-                    
-                    itemElement.addEventListener('mouseout', function() {
-                        this.style.backgroundColor = '';
-                    });
-                    
-                    // Add click handler
-                    itemElement.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        console.log(`Executing action: ${menuItem.action}`);
-                        handleMenuAction(menuItem.action);
-                        hideAllMenus();
-                    });
-                    
-                    dropdown.appendChild(itemElement);
-                }
-            });
+        // *** NEW: Hide parent menu item if no actions ***
+        if (!currentMenuItems || currentMenuItems.length === 0) {
+            item.style.display = 'none'; // Hide the top-level menu item (e.g., "Edit")
+            return; // Stop processing this menu item
         } else {
-            // If no items, add a disabled placeholder
-            const placeholder = document.createElement('div');
-            placeholder.className = 'dropdown-item disabled';
-            placeholder.textContent = 'No actions available';
-            placeholder.style.padding = '8px 15px';
-            placeholder.style.color = 'var(--text-muted)';
-            placeholder.style.opacity = '0.7';
-            placeholder.style.pointerEvents = 'none';
-            dropdown.appendChild(placeholder);
+            item.style.display = ''; // Ensure it's visible if it has items
         }
+        // *** End NEW ***
+
+        // Create menu items
+        currentMenuItems.forEach(menuItem => {
+            if (menuItem.separator) {
+                const separator = document.createElement('div');
+                separator.className = 'dropdown-separator';
+                separator.style.height = '1px';
+                separator.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                separator.style.margin = '5px 0';
+                dropdown.appendChild(separator);
+            } else {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'dropdown-item';
+                itemElement.textContent = menuItem.label;
+                itemElement.dataset.action = menuItem.action;
+                itemElement.style.padding = '8px 15px';
+                itemElement.style.color = 'var(--menu-text)';
+                itemElement.style.cursor = 'pointer';
+                itemElement.style.whiteSpace = 'nowrap';
+                
+                // Add hover effect
+                itemElement.addEventListener('mouseover', function() {
+                    this.style.backgroundColor = 'var(--menu-hover)';
+                });
+                
+                itemElement.addEventListener('mouseout', function() {
+                    this.style.backgroundColor = '';
+                });
+                
+                // Add click handler
+                itemElement.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log(`Executing action: ${menuItem.action}`);
+                    handleMenuAction(menuItem.action);
+                    hideAllMenus();
+                });
+                
+                dropdown.appendChild(itemElement);
+            }
+        });
     });
 }
 
@@ -557,22 +537,27 @@ function updateMenus() {
  * @returns {Array} Array of menu items
  */
 function getMenuItemsForMenu(menuName) {
+    console.log(`[getMenuItems] Requesting menu: '${menuName}', Active window: '${activeWindow}'`);
     // Standard menus that are the same for all apps
     if (menuName === 'window') {
+        console.log('[getMenuItems] Returning standard window menu.');
         return standardMenus.window;
     }
     
     // App-specific menus
     if (activeWindow && appMenus[activeWindow] && appMenus[activeWindow][menuName]) {
+        console.log(`[getMenuItems] Returning menu '${menuName}' for app '${activeWindow}'.`);
         return appMenus[activeWindow][menuName];
     }
     
-    // Default app menus
+    // Default app menus (Desktop focus)
     if (appMenus[DEFAULT_APP] && appMenus[DEFAULT_APP][menuName]) {
+        console.log(`[getMenuItems] Returning default desktop menu '${menuName}'.`);
         return appMenus[DEFAULT_APP][menuName];
     }
     
     // Return empty array if no menu items found
+    console.log(`[getMenuItems] No menu found for '${menuName}' with active window '${activeWindow}'.`);
     return [];
 }
 
@@ -592,15 +577,10 @@ function handleMenuAction(action) {
         handleMailAction(action);
     } else if (activeWindow === 'pdf-viewer') {
         handlePdfViewerAction(action);
-    } else if (activeWindow === 'text-editor') {
-        handleTextEditorAction(action);
     } else {
         // Common actions or desktop-specific actions
         switch (action) {
-            case 'about':
-                showAboutDialog();
-                break;
-            case 'settings':
+            case 'preferences':
                 showSettings();
                 break;
             case 'show-terminal':
@@ -614,9 +594,6 @@ function handleMenuAction(action) {
                 break;
             case 'show-fileviewer':
                 showApplication('pdf-viewer');
-                break;
-            case 'show-text-editor':
-                showApplication('text-editor');
                 break;
             case 'minimize-window':
                 minimizeActiveWindow();
@@ -704,53 +681,6 @@ function handlePdfViewerAction(action) {
 }
 
 /**
- * Handle text editor actions
- * @param {string} action - The action to perform
- */
-function handleTextEditorAction(action) {
-    console.log(`Handling text editor action: ${action}`);
-    
-    const textEditor = document.getElementById('text-editor');
-    if (!textEditor) {
-        console.error('Text editor not found');
-        return;
-    }
-    
-    switch (action) {
-        case 'new-text-file':
-            // Dispatch a custom event that our text editor can listen for
-            textEditor.dispatchEvent(new CustomEvent('new-file'));
-            break;
-        case 'save-text-file':
-            // Dispatch a custom event that our text editor can listen for
-            textEditor.dispatchEvent(new CustomEvent('save-file'));
-            break;
-        case 'close-text-editor':
-            textEditor.classList.add('minimized');
-            break;
-        case 'cut-text':
-            document.execCommand('cut');
-            break;
-        case 'copy-text':
-            document.execCommand('copy');
-            break;
-        case 'paste-text':
-            document.execCommand('paste');
-            break;
-        case 'select-all-text':
-            // Find the text editor textarea and select all text
-            const textarea = textEditor.querySelector('textarea');
-            if (textarea) {
-                textarea.select();
-            }
-            break;
-        default:
-            console.log(`Unhandled text editor action: ${action}`);
-            break;
-    }
-}
-
-/**
  * Minimize the active window
  */
 function minimizeActiveWindow() {
@@ -812,16 +742,6 @@ function showApplication(appId) {
     const dockIcon = document.getElementById(`${appId}-dock-icon`);
     if (dockIcon) {
         dockIcon.classList.add('active');
-    }
-    
-    // Special handling for certain apps
-    if (appId === 'text-editor') {
-        // For text editor, if no file is open, create a new one
-        const textEditorContent = element.querySelector('.text-editor-content');
-        if (textEditorContent && !textEditorContent.textContent.trim()) {
-            // This will be handled by the text editor's internal logic
-            element.dispatchEvent(new CustomEvent('new-file'));
-        }
     }
 }
 

@@ -62,6 +62,9 @@ function setupSettingsUI() {
     
     // Setup dynamic wallpaper loader
     loadAndSetupWallpapers();
+
+    // Populate the About panel info
+    populateAboutPanelInfo();
 }
 
 /**
@@ -234,6 +237,7 @@ async function loadAndSetupWallpapers() {
                 localStorage.setItem('background', defaultWallpaper);
             }
         }
+        console.log('Wallpaper setup complete.');
     } catch (error) {
         console.error('Error loading wallpapers:', error);
     }
@@ -271,6 +275,51 @@ async function getAvailableWallpapers() {
     } catch (error) {
         console.error('Error fetching wallpapers:', error);
         return [];
+    }
+}
+
+/**
+ * Populates the About panel with relevant system/browser info.
+ */
+function populateAboutPanelInfo() {
+    console.log('Populating About panel info...');
+    // Get elements within the #about-panel
+    const aboutPanel = document.getElementById('about-panel');
+    if (!aboutPanel) {
+        console.error('About panel not found in DOM');
+        return;
+    }
+
+    const browserInfoEl = aboutPanel.querySelector('#browser-info');
+    const resolutionInfoEl = aboutPanel.querySelector('#resolution-info');
+    const userAgentInfoEl = aboutPanel.querySelector('#user-agent-info'); // Assuming an ID exists or we add it
+    const dateTimeEl = aboutPanel.querySelector('#date-time-info');       // Assuming an ID exists or we add it
+
+    // Browser info
+    if (browserInfoEl) {
+        const userAgent = navigator.userAgent;
+        let browserName = "Unknown Browser";
+        if (userAgent.indexOf("Firefox") > -1) browserName = "Mozilla Firefox";
+        else if (userAgent.indexOf("Edg") > -1) browserName = "Microsoft Edge";
+        else if (userAgent.indexOf("Chrome") > -1 && userAgent.indexOf("Safari") > -1) browserName = "Google Chrome";
+        else if (userAgent.indexOf("Safari") > -1 && userAgent.indexOf("Chrome") === -1) browserName = "Apple Safari";
+        else if (userAgent.indexOf("Opera") > -1 || userAgent.indexOf("OPR") > -1) browserName = "Opera";
+        browserInfoEl.textContent = browserName;
+    }
+    
+    // Screen resolution
+    if (resolutionInfoEl) {
+        resolutionInfoEl.textContent = `${window.screen.width} × ${window.screen.height}`;
+    }
+
+    // User Agent
+    if (userAgentInfoEl) {
+        userAgentInfoEl.textContent = navigator.userAgent || 'N/A';
+    }
+
+    // Date & Time
+    if (dateTimeEl) {
+        dateTimeEl.textContent = new Date().toLocaleString();
     }
 }
 
