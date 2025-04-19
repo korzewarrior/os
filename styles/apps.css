@@ -1,0 +1,329 @@
+/* Terminal specific styles */
+.terminal-container {
+  width: 800px;
+  height: 600px;
+  background-color: var(--window-bg-dark);
+  color: var(--text-light);
+}
+
+.terminal-container .terminal-header {
+  background-color: #303030;
+  border-bottom: 1px solid #404040;
+}
+
+.terminal-container .terminal-header .terminal-title {
+  color: #aaa;
+}
+
+.terminal-content {
+  padding: 15px;
+  height: calc(100% - var(--header-height-tall));
+  overflow-y: auto;
+}
+
+.terminal-output {
+  margin-bottom: 15px;
+}
+
+.terminal-prompt {
+  display: flex;
+  align-items: center;
+}
+
+.prompt-symbol {
+  color: #8ae234;
+  margin-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+#command-input {
+  background: transparent;
+  border: none;
+  color: #f0f0f0;
+  font-family: monospace;
+  font-size: 14px;
+  flex-grow: 1;
+  outline: none;
+}
+
+/* Terminal text styles */
+.terminal-container h2, 
+.terminal-container h3, 
+.terminal-container h4 {
+  color: #66c2cd;
+}
+
+.terminal-container strong {
+  color: #ad7fa8;
+}
+
+.ascii-art {
+  color: #66c2cd;
+  line-height: 1.2;
+  margin: 20px 0;
+  font-family: monospace;
+  white-space: pre;
+}
+
+/* Contact form */
+.contact-form {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 5px;
+  margin: 15px 0;
+}
+
+.contact-form input, 
+.contact-form textarea {
+  background-color: #2e2e2e;
+  border: 1px solid #444;
+  color: #f0f0f0;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+.contact-form button {
+  background-color: #66c2cd;
+  color: #222;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Browser specific styles */
+.browser-container {
+  width: 850px;
+  height: 600px;
+  background-color: var(--window-bg-light);
+  color: var(--text-dark);
+}
+
+.browser-header {
+  border-bottom: 1px solid #ccc;
+}
+
+.browser-container .browser-header .browser-title {
+  color: #333;
+}
+
+.browser-toolbar {
+  height: 40px;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.browser-navigation {
+  display: flex;
+  margin-right: 10px;
+}
+
+.nav-button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.nav-button:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.address-bar {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.address-bar input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+.browser-content {
+  height: calc(100% - var(--header-height-tall) - 40px);
+  overflow-y: auto;
+  background-color: white;
+}
+
+#browser-display {
+  padding: 20px;
+}
+
+.browser-home {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.bookmarks {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.bookmark {
+  background-color: #f0f0f0;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+}
+
+.bookmark:hover {
+  background-color: #e0e0e0;
+}
+
+.website-content {
+  padding: 20px;
+}
+
+/* Mail app specific styles */
+.mail-container {
+  width: 750px;
+  height: 550px;
+  background-color: var(--window-bg-light);
+  color: var(--text-dark);
+}
+
+.mail-header {
+  border-bottom: 1px solid #ccc;
+}
+
+.mail-container .mail-header .mail-title {
+  color: #333;
+}
+
+.mail-content {
+  height: calc(100% - var(--header-height-tall));
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}
+
+.mail-status-area {
+  margin-bottom: 10px;
+  min-height: 40px;
+}
+
+.compose-area {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.form-row {
+  display: flex;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.form-row label {
+  width: 80px;
+  text-align: right;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.form-row input {
+  flex-grow: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#message-body {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: none;
+  margin-bottom: 15px;
+  font-family: Arial, sans-serif;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.send-button {
+  padding: 8px 16px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.send-button:hover {
+  background-color: #0062a8;
+}
+
+.sending-animation {
+  padding: 10px;
+  background-color: #f0f7ff;
+  border: 1px solid #c0d9ff;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-dots span {
+  animation: loading 1.4s infinite;
+  display: inline-block;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.success-message {
+  padding: 10px;
+  background-color: #e9f7ef;
+  border: 1px solid #a3e4b5;
+  border-radius: 4px;
+  color: #27ae60;
+}
+
+.success-message p {
+  margin: 0;
+}
+
+.success-message .small {
+  font-size: 0.8em;
+  color: #777;
+  margin-top: 5px;
+}
+
+/* Special rule for mail minimization */
+#mail[data-should-minimize="true"]:not([data-user-opened="true"]) {
+  display: none !important;
+} 
