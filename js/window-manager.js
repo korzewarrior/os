@@ -1,26 +1,31 @@
 // Unified window management system
+import { ProgramManager } from './program.js'; // Import ProgramManager
+
 export class WindowManager {
     // Static counter for z-index management
     static zIndexCounter = 100;
     
-    constructor(id, options = {}) {
-        this.id = id;
+    constructor(element, options = {}) {
+        this.element = element;
+        this.id = element.id; // ID comes from the element
+        
         this.options = Object.assign({
             title: '',
             initialWidth: 'auto',
             initialHeight: 'auto',
             minimized: false,
+            onFocus: () => {}, 
+            onClose: () => {}, 
             onMinimize: () => {},
             onMaximize: () => {},
             onRestore: () => {}
         }, options);
         
         // Create element references
-        this.element = document.getElementById(id);
-        this.header = this.element ? this.element.querySelector('.window-header') : null;
-        this.title = this.element ? this.element.querySelector('.window-title') : null;
-        this.resizeHandle = this.element ? this.element.querySelector('.resize-handle') : null;
-        this.dockIcon = document.getElementById(`${id}-dock-icon`);
+        this.header = this.element.querySelector('.window-header');
+        this.title = this.element.querySelector('.window-title');
+        this.resizeHandle = this.element.querySelector('.resize-handle');
+        this.dockIcon = document.getElementById(`${this.id}-dock-icon`);
         
         // Store callbacks for showing the window
         this.onShowCallbacks = [];
@@ -36,18 +41,7 @@ export class WindowManager {
             zIndex: '100'
         };
         
-        // Register this window manager in the global registry for emergency-fix.js to access
-        if (!window.windowManagers) {
-            window.windowManagers = {};
-        }
-        window.windowManagers[id] = this;
-        
-        // Initialize if element exists
-        if (this.element) {
-            this.initialize();
-        } else {
-            console.error(`Window element with ID ${id} not found`);
-        }
+        this.initialize();
     }
     
     initialize() {
@@ -67,47 +61,25 @@ export class WindowManager {
             this.minimize();
         }
         
-        console.log(`[${this.id}] Window initialized`);
+        console.log(`[WindowManager for ${this.id}] Initialized`);
     }
     
     setupControls() {
-        if (!this.controlsContainer) return;
-        
-        // Remove any existing listeners by cloning controls
-        const parent = this.controlsContainer.parentNode;
-        const newControls = this.controlsContainer.cloneNode(true);
-        parent.replaceChild(newControls, this.controlsContainer);
-        this.controlsContainer = newControls;
-        
-        // Get control buttons
-        const redControl = this.controlsContainer.querySelector('.red');
-        const yellowControl = this.controlsContainer.querySelector('.yellow');
-        const greenControl = this.controlsContainer.querySelector('.green');
-        
-        // Set up control event handlers
-        if (redControl) {
-            redControl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.minimize();
-            });
-        }
-        
-        if (yellowControl) {
-            yellowControl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.minimize();
-            });
-        }
-        
-        if (greenControl) {
-            greenControl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.toggleFullscreen();
-            });
-        }
+        const controlsContainer = this.element.querySelector('.window-controls');
+        if (!controlsContainer) return;
+
+        // Use event delegation on the container might be better than cloning
+        controlsContainer.addEventListener('click', (e) => {
+             e.stopPropagation();
+             e.preventDefault();
+             if (e.target.classList.contains('red')) {
+                 this.close(); // Use the close method which calls the callback
+             } else if (e.target.classList.contains('yellow')) {
+                 this.minimize();
+             } else if (e.target.classList.contains('green')) {
+                 this.toggleFullscreen();
+             }
+        });
     }
     
     setupDragging() {
@@ -157,7 +129,7 @@ export class WindowManager {
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
                 
-                console.log(`[${this.id}] Drag ended`);
+                console.log(`[WindowManager for ${this.id}] Drag ended`);
                 
                 // Save current position after drag ends, only if not fullscreen
                 if (!this.element.classList.contains('fullscreen')) {
@@ -214,161 +186,147 @@ export class WindowManager {
             document.addEventListener('mousemove', mouseMoveHandler);
             document.addEventListener('mouseup', mouseUpHandler);
             
-            console.log(`[${this.id}] Drag started`);
+            console.log(`[WindowManager for ${this.id}] Drag started`);
         });
     }
     
     setupResizing() {
-        if (!this.resizeHandle) return;
-        
-        // Remove any existing event listeners by cloning the resize handle
-        const newResizeHandle = this.resizeHandle.cloneNode(true);
-        this.resizeHandle.parentNode.replaceChild(newResizeHandle, this.resizeHandle);
-        this.resizeHandle = newResizeHandle;
-        
-        // Ensure proper interaction capabilities
-        this.resizeHandle.style.cursor = 'nwse-resize';
-        this.resizeHandle.style.pointerEvents = 'auto';
-        this.resizeHandle.style.zIndex = '10';
-        
-        let isResizing = false;
-        let originalWidth, originalHeight, originalX, originalY;
-        
-        this.resizeHandle.addEventListener('mousedown', (e) => {
-            if (this.element.classList.contains('fullscreen')) return;
-            
-            isResizing = true;
-            e.preventDefault(); // Prevent default drag behavior
-            this.bringToFront();
+        const handles = this.element.querySelectorAll('.resize-handle');
+        if (!handles || handles.length === 0) return;
 
-            // Get current visual position and size
-            const rect = this.element.getBoundingClientRect();
-            
-            // Explicitly set position style *before* removing transform
-            // This helps lock the current visual position
-            this.element.style.position = 'absolute'; 
-            this.element.style.left = `${rect.left}px`;
-            this.element.style.top = `${rect.top}px`;
-            this.element.style.width = `${rect.width}px`;
-            this.element.style.height = `${rect.height}px`;
-            
-            // Now remove the transform that might have been used for centering
-            this.element.style.transform = 'none';
-            
-            // Store the original mouse position and dimensions for calculating delta
-            originalWidth = rect.width;
-            originalHeight = rect.height;
-            originalX = e.clientX;
-            originalY = e.clientY;
-            
-            console.log(`[${this.id}] Resize started`);
-        });
+        let isResizing = false;
+        let handleType = null; // 'br' or 'bl'
+        let originalWidth, originalHeight, originalX, originalY, originalTop, originalLeft;
+        
+        const minWidth = 400;
+        const minHeight = 300;
         
         const mouseMoveHandler = (e) => {
             if (!isResizing) return;
+
+            const dx = e.clientX - originalX;
+            const dy = e.clientY - originalY;
             
-            const width = originalWidth + (e.clientX - originalX);
-            const height = originalHeight + (e.clientY - originalY);
-            
-            // Apply minimum size constraints
-            const minWidth = 400;
-            const minHeight = 300;
-            
-            if (width > minWidth) {
-                this.element.style.width = `${width}px`;
-                this.originalState.width = `${width}px`;
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+            let newTop = originalTop;
+            let newLeft = originalLeft;
+
+            if (handleType === 'br') {
+                newWidth = originalWidth + dx;
+                newHeight = originalHeight + dy;
+            } else if (handleType === 'bl') {
+                newWidth = originalWidth - dx;
+                newHeight = originalHeight + dy;
+                newLeft = originalLeft + dx;
+            }
+
+            // Apply minimum size constraints and update styles
+            if (newWidth >= minWidth) {
+                this.element.style.width = `${newWidth}px`;
+                 if (handleType === 'bl') {
+                     this.element.style.left = `${newLeft}px`;
+                 }
+            } else {
+                 // If constraint met, potentially adjust left for BL handle
+                 if (handleType === 'bl') {
+                     this.element.style.left = `${originalLeft + (originalWidth - minWidth)}px`;
+                 }
+                 this.element.style.width = `${minWidth}px`;
             }
             
-            if (height > minHeight) {
-                this.element.style.height = `${height}px`;
-                this.originalState.height = `${height}px`;
+            if (newHeight >= minHeight) {
+                 this.element.style.height = `${newHeight}px`;
+            } else {
+                 this.element.style.height = `${minHeight}px`;
             }
         };
         
         const mouseUpHandler = () => {
             if (isResizing) {
                 isResizing = false;
-                console.log(`[${this.id}] Resize ended`);
-                
-                // Update the originalState to reflect new position
-                this.originalState.position = 'absolute';
-                this.originalState.top = this.element.style.top;
-                this.originalState.left = this.element.style.left;
-                this.originalState.transform = 'none';
-                this.originalState.width = this.element.style.width;
-                this.originalState.height = this.element.style.height;
+                handleType = null;
+                this.element.classList.remove('resizing'); // Remove class on mouseup
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+                console.log(`[WindowManager for ${this.id}] Resize ended`);
+                this.saveCurrentState(); 
             }
         };
-        
-        // Add the event listeners to document to ensure they work when mouse moves outside the resize handle
-        document.addEventListener('mousemove', mouseMoveHandler);
-        document.addEventListener('mouseup', mouseUpHandler);
-        
-        // Store reference to these handlers for potential cleanup
-        this._resizeHandlers = {
-            mousemove: mouseMoveHandler,
-            mouseup: mouseUpHandler
-        };
-    }
-    
-    setupDockIcon() {
-        if (!this.dockIcon) return;
-        
-        // Remove any existing listeners by cloning the dock icon
-        const newDockIcon = this.dockIcon.cloneNode(true);
-        this.dockIcon.parentNode.replaceChild(newDockIcon, this.dockIcon);
-        this.dockIcon = newDockIcon;
-        
-        // Apply high-priority styles to ensure clickability
-        this.dockIcon.style.pointerEvents = 'auto';
-        this.dockIcon.style.cursor = 'pointer';
-        this.dockIcon.style.position = 'relative';
-        this.dockIcon.style.zIndex = '9999'; // Ensure dock icons are always clickable
-        
-        // Make images inside non-interactive to prevent event capture issues
-        const img = this.dockIcon.querySelector('img');
-        if (img) {
-            img.style.pointerEvents = 'none';
-        }
-        
-        // Add a robust click handler
-        this.dockIcon.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent event propagation
-            e.preventDefault(); // Prevent default action
-            console.log(`[${this.id}] Dock icon clicked`);
+
+        handles.forEach(handle => {
+            const newHandle = handle.cloneNode(true);
+            handle.parentNode.replaceChild(newHandle, handle);
             
-            // Show the window
-            this.show(); // Use the show method which already handles focus
+            newHandle.addEventListener('mousedown', (e) => {
+                if (this.element.classList.contains('fullscreen')) return;
+                
+                isResizing = true;
+                this.element.classList.add('resizing'); // Add class on mousedown
+                handleType = newHandle.classList.contains('resize-handle-br') ? 'br' : 'bl';
+                e.preventDefault();
+                this.bringToFront();
+
+                const rect = this.element.getBoundingClientRect();
+                this.element.style.position = 'absolute'; 
+                this.element.style.transform = 'none'; 
+                this.element.style.left = `${rect.left}px`;
+                this.element.style.top = `${rect.top}px`;
+                this.element.style.width = `${rect.width}px`;
+                this.element.style.height = `${rect.height}px`;
+                
+                originalWidth = rect.width;
+                originalHeight = rect.height;
+                originalX = e.clientX;
+                originalY = e.clientY;
+                originalLeft = rect.left;
+                originalTop = rect.top;
+                
+                console.log(`[WindowManager for ${this.id}] Resize started from ${handleType}`);
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+            });
         });
     }
     
+    setupDockIcon() {
+        if (!this.dockIcon) {
+            console.warn(`[WindowManager ${this.id}] No dock icon found.`);
+            return; 
+        }
+        // Problem: Multiple instances share one dock icon.
+        // Option 1: Dock click brings *all* windows of that type forward?
+        // Option 2: Dock click brings *last focused* window of that type forward?
+        // Option 3: Dock icon shows indicator for multiple windows? (Complex UI)
+        // Current fix: dock icon click will use ProgramManager.launch(baseId) -> show() 
+        // which is handled in menu-bar.js setupSimpleWindowListeners. We don't need a listener here.
+        // We just need to manage the 'active' state.
+        // This is now handled by ProgramManager.setFocusedInstance logic.
+        console.log(`[WindowManager ${this.id}] Dock icon found, but listener is handled globally.`);
+    }
+    
     setupWindowFocus() {
-        // Add a click handler to the entire window to bring it to front
+        // When the window element is clicked (header or content, not controls)
         this.element.addEventListener('mousedown', (e) => {
-            // Only prevent bringing to front if clicking specific controls in the header
-            const clickedControl = e.target.closest('.window-controls .control');
-            
-            if (!clickedControl) {
-                this.bringToFront();
+            // Don't trigger focus change if clicking controls or resize handle
+            if (e.target.closest('.window-controls') || e.target.classList.contains('resize-handle')) {
+                return;
             }
-            // Allow event to propagate for other interactions like text selection in content
-        }, true); // Use capture phase to ensure focus happens early
+            this.bringToFront();
+            // Trigger the onFocus callback provided by Program
+            this.options.onFocus(); 
+        }, true); // Use capture phase to ensure it runs before drag starts maybe
     }
     
     minimize() {
+        console.log(`[WindowManager ${this.id}] Minimizing.`);
         this.element.classList.add('minimized');
-        
-        // Add bounce effect to dock icon
-        if (this.dockIcon) {
-            this.dockIcon.classList.add('bounce');
-            setTimeout(() => this.dockIcon.classList.remove('bounce'), 1000);
-        }
-        
-        console.log(`[${this.id}] Window minimized`);
-        
-        // Call the onMinimize callback
-        if (typeof this.options.onMinimize === 'function') {
-            this.options.onMinimize();
+        if (this.dockIcon) this.dockIcon.classList.remove('active'); 
+        // Let ProgramManager handle focus change if minimizing the focused window
+        this.options.onMinimize(); // Notify program
+        // If this was the focused window, clear global focus
+        if (ProgramManager.focusedInstanceId === this.id) {
+             ProgramManager.setFocusedInstance(null); 
         }
     }
     
@@ -399,7 +357,7 @@ export class WindowManager {
             this.element.style.transform = 'none';
             this.element.style.zIndex = '1000'; // Ensure it's above other elements but respects menu bar positioning
             
-            console.log(`[${this.id}] Window maximized`);
+            console.log(`[WindowManager for ${this.id}] Window maximized`);
             
             // Call the onMaximize callback
             if (typeof this.options.onMaximize === 'function') {
@@ -409,7 +367,7 @@ export class WindowManager {
             // Restore to previous state
             this.restoreOriginalState();
             
-            console.log(`[${this.id}] Window restored from fullscreen`);
+            console.log(`[WindowManager for ${this.id}] Window restored from fullscreen`);
             
             // Call the onRestore callback
             if (typeof this.options.onRestore === 'function') {
@@ -419,28 +377,13 @@ export class WindowManager {
     }
     
     show() {
-        // Remove minimized class
+        console.log(`[WindowManager ${this.id}] Showing window.`);
         this.element.classList.remove('minimized');
-        
-        // Bring to front
         this.bringToFront();
-        
-        console.log(`[${this.id}] Window shown`);
-        
-        // Update the active window state in menu-bar.js if available
-        // Ensure setActiveWindow is actually defined globally or imported if needed
-        if (typeof setActiveWindow === 'function') { 
-            try {
-                setActiveWindow(this.id);
-            } catch (e) {
-                console.error(`Error calling setActiveWindow: ${e}`);
-            }
-        } else {
-            // console.warn('setActiveWindow function not found globally.');
-        }
-        
-        // Call show callbacks
-        this.onShowCallbacks.forEach(callback => callback());
+        // Trigger the onFocus callback as showing implies focusing
+        this.options.onFocus(); 
+        // Execute any callbacks registered specifically for showing this window
+        this.onShowCallbacks.forEach(cb => cb());
     }
     
     /**
@@ -456,7 +399,7 @@ export class WindowManager {
     saveCurrentState() {
         // Only save if we're not in fullscreen mode
         if (!this.element.classList.contains('fullscreen')) {
-            console.log(`[${this.id}] Saving state:`, { 
+            console.log(`[WindowManager for ${this.id}] Saving state:`, { 
                 width: this.element.style.width, 
                 height: this.element.style.height,
                 position: this.element.style.position || 'absolute',
@@ -478,7 +421,7 @@ export class WindowManager {
     }
     
     restoreOriginalState() {
-        console.log(`[${this.id}] Restoring state to:`, this.originalState); // Log state being restored
+        console.log(`[WindowManager for ${this.id}] Restoring state to:`, this.originalState); // Log state being restored
         // Apply saved state explicitly
         this.element.style.position = this.originalState.position;
         this.element.style.top = this.originalState.top;
@@ -490,40 +433,33 @@ export class WindowManager {
     }
     
     bringToFront() {
-        // First, lower z-index of all windows
-        document.querySelectorAll('.window-container').forEach(win => {
-            // Only adjust windows that aren't this one
-            if (win.id !== this.id) {
-                win.style.zIndex = '100';
-                win.classList.remove('window-focused');
-                
-                // Also update dock icon active states
-                const dockIconId = `${win.id}-dock-icon`;
-                const dockIcon = document.getElementById(dockIconId);
-                if (dockIcon) {
-                    dockIcon.classList.remove('active');
-                }
-            }
-        });
+        // Use static counter from the class to get a new, higher z-index
+        const newZIndex = WindowManager.zIndexCounter++;
+        this.element.style.zIndex = newZIndex;
         
-        // Increment the counter and set the z-index for this window
-        WindowManager.zIndexCounter += 10;
-        const newZIndex = WindowManager.zIndexCounter;
+        // Don't save this temporary high z-index to originalState here,
+        // let saveCurrentState handle it if needed after drag/resize.
+        console.log(`[WindowManager ${this.id}] Set z-index to ${newZIndex}`);
         
-        // Set a high value to ensure it's above all other windows
-        this.element.style.zIndex = newZIndex.toString();
-        this.element.classList.add('window-focused');
-        
-        // Add active class to corresponding dock icon
-        if (this.dockIcon) {
-            this.dockIcon.classList.add('active');
-        }
-        
-        console.log(`[${this.id}] Brought to front with z-index: ${newZIndex}`);
+        // Trigger the onFocus callback provided by Program, 
+        // which should call ProgramManager.setFocusedInstance
+        this.options.onFocus(); 
+    }
+
+    close() {
+        console.log(`[WindowManager ${this.id}] Closing via manager.`);
+        // Trigger the onClose callback provided by Program, which calls ProgramManager.close
+        this.options.onClose(); 
     }
 }
 
 // Create a factory function for easy window creation
-export function createWindowManager(id, options = {}) {
-    return new WindowManager(id, options);
+export function createWindowManager(elementId, options = {}) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        console.error(`Failed to create WindowManager: Element with ID ${elementId} not found.`);
+        return null;
+    }
+    console.log(`Creating WindowManager for element: ${elementId}`);
+    return new WindowManager(element, options);
 }

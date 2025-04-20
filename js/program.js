@@ -5,44 +5,162 @@
 
 import { createWindowManager } from './window-manager.js';
 
-// Program Manager to keep track of registered programs
+// Program Manager to handle registration and launching of program instances
 export class ProgramManager {
-    static programs = {};
-    
+    static programClasses = {}; // Stores registered Program classes by base ID (e.g., 'browser')
+    static activeInstances = {}; // Stores active program instances by unique ID (e.g., 'browser-123')
+    static focusedInstanceId = null; // Track the ID of the focused window
+
     /**
      * Register a program with the manager
      * @param {class} ProgramClass - The program's class definition
      */
     static register(ProgramClass) {
-        const instance = new ProgramClass();
-        const id = instance.id;
-        
-        if (!id) {
-            console.error('Program must have an ID');
+        // Use a static property on the class or a getter for the base ID
+        const baseId = ProgramClass.BASE_ID || ProgramClass.name.toLowerCase().replace('program', '');
+        if (!baseId) {
+            console.error('Program class must have a static BASE_ID property or follow naming convention.');
             return;
         }
-        
-        this.programs[id] = ProgramClass;
-        console.log(`Program registered: ${id}`);
+        this.programClasses[baseId] = ProgramClass;
+        console.log(`Program class registered: ${baseId}`);
     }
     
     /**
      * Launch a program by ID
-     * @param {string} id - The program's ID
+     * @param {string} baseId - The program's base ID
      * @param {object} options - Optional parameters for the program
      * @returns {object} The program instance
      */
-    static launch(id, options = {}) {
-        if (!this.programs[id]) {
-            console.error(`Program not found: ${id}`);
+    static launch(baseId, options = {}) {
+        // --- Singleton Check for Settings --- 
+        if (baseId === 'settings') {
+            const existingInstances = this.getInstancesByType('settings');
+            if (existingInstances.length > 0) {
+                 console.log('Settings instance already exists. Focusing existing.');
+                 existingInstances[0].show(); // Show the first existing instance
+                 return existingInstances[0]; // Return existing instance
+            }
+        }
+        // --- End Singleton Check ---
+        
+        const ProgramClass = this.programClasses[baseId];
+        if (!ProgramClass) {
+            console.error(`Program class not found for base ID: ${baseId}`);
             return null;
         }
-        
-        const ProgramClass = this.programs[id];
-        const program = new ProgramClass(options);
-        program.init();
-        
-        return program;
+
+        // Generate a unique instance ID
+        const instanceId = `${baseId}-${Date.now()}-${Math.random().toString(16).substring(2, 8)}`;
+        console.log(`Launching new instance for ${baseId} with ID: ${instanceId}`);
+
+        // Create the program instance with its unique ID
+        const programInstance = new ProgramClass(instanceId, options);
+
+        // Store the active instance
+        this.activeInstances[instanceId] = programInstance;
+
+        // Store the initialization promise on the instance
+        // This promise will resolve when init is done, or reject if it fails
+        programInstance._initPromise = programInstance.init().catch(err => {
+            console.error(`Error initializing program instance ${instanceId}:`, err);
+            // Clean up if initialization fails
+            delete this.activeInstances[instanceId];
+            const windowElement = document.getElementById(instanceId);
+            if (windowElement) windowElement.remove();
+            // Rethrow the error so callers know init failed if they await the promise
+            throw err; 
+        });
+
+        return programInstance; // Return the instance immediately
+    }
+
+    static getInstance(instanceId) {
+        return this.activeInstances[instanceId];
+    }
+    
+    // Get count of currently VISIBLE instances of a specific base type
+    static getVisibleInstanceCount(baseId) {
+        let count = 0;
+        for (const instanceId in this.activeInstances) {
+            const instance = this.activeInstances[instanceId];
+            // Check baseId and if the window element exists and is not minimized
+            if (instance.baseId === baseId && instance.windowElement && !instance.windowElement.classList.contains('minimized')) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // Get all instances of a specific base type (e.g., all browsers)
+    static getInstancesByType(baseId) {
+        return Object.values(this.activeInstances).filter(instance => instance.baseId === baseId);
+    }
+
+    static close(instanceId) {
+        const instance = this.activeInstances[instanceId];
+        if (instance) {
+            console.log(`Closing instance: ${instanceId}`);
+            if (instance.destroy) {
+                instance.destroy(); // Allow program to clean up
+            }
+            const windowElement = document.getElementById(instanceId);
+            if (windowElement) windowElement.remove();
+            delete this.activeInstances[instanceId];
+            if (this.focusedInstanceId === instanceId) {
+                this.setFocusedInstance(null); // Clear focus if closed window was focused
+            }
+        } else {
+            console.warn(`Attempted to close non-existent instance: ${instanceId}`);
+        }
+    }
+    
+    static setFocusedInstance(instanceId) {
+         // Only proceed if focus is actually changing
+         if (this.focusedInstanceId === instanceId) return;
+
+         console.log(`Changing focused instance from ${this.focusedInstanceId} to: ${instanceId}`);
+
+         // 1. Unfocus the previously focused instance (if any)
+         const previousInstance = this.getInstance(this.focusedInstanceId);
+         if (previousInstance && previousInstance.windowElement) {
+             console.log(`Unfocusing previous instance: ${this.focusedInstanceId}`);
+             previousInstance.windowElement.classList.remove('window-focused');
+             // Update its dock icon (find by baseId)
+             const prevDockIcon = document.getElementById(`${previousInstance.baseId}-dock-icon`);
+             if (prevDockIcon) prevDockIcon.classList.remove('active');
+         }
+
+         // 2. Update the internal focus tracking
+         this.focusedInstanceId = instanceId;
+
+         // 3. Focus the new instance (if not null/desktop)
+         const newInstance = this.getInstance(instanceId);
+         let newBaseId = 'desktop'; // Default if no window is focused
+         if (newInstance && newInstance.windowElement) {
+             console.log(`Focusing new instance: ${instanceId}`);
+             newInstance.windowElement.classList.add('window-focused');
+             newBaseId = newInstance.baseId;
+             // Update its dock icon
+             const newDockIcon = document.getElementById(`${newInstance.baseId}-dock-icon`);
+             if (newDockIcon) newDockIcon.classList.add('active');
+             // Ensure it's physically on top (WindowManager should have handled z-index on click)
+             // Optionally call bringToFront again, but might be redundant?
+             // newInstance.windowManager?.bringToFront(); 
+         } else {
+              console.log('Focus set to desktop (no instance ID provided).');
+         }
+
+         // 4. Update the menu bar based on the newly focused app type (or desktop)
+         if (window.updateMenuBarForApp) {
+             window.updateMenuBarForApp(newBaseId);
+         } else {
+              console.warn('window.updateMenuBarForApp not found, cannot update menu bar.');
+         }
+    }
+
+    static getFocusedInstance() {
+        return this.getInstance(this.focusedInstanceId);
     }
 }
 
@@ -52,19 +170,22 @@ export class ProgramManager {
 export class Program {
     /**
      * Create a new program window
-     * @param {string} id - The program's unique identifier
+     * @param {string} instanceId - The program's unique identifier
      * @param {string} title - The window title
+     * @param {string} baseId - The program's base ID
      * @param {number} width - Initial window width in pixels
      * @param {number} height - Initial window height in pixels
      */
-    constructor(id, title, width = 800, height = 600) {
-        this.id = id;
+    constructor(instanceId, title, baseId, width = 800, height = 600) {
+        this.instanceId = instanceId; // Unique ID for this specific window instance
+        this.baseId = baseId;         // Base type ID (e.g., 'browser')
         this.title = title;
         this.width = width;
         this.height = height;
-        this.icon = '';
-        this.windowManager = null;
-        this.windowContent = null;
+        this.icon = ''; // Program-specific icon (optional)
+        this.windowManager = null; // Will be created in init
+        this.windowElement = null; // Reference to the main window DOM element
+        this.windowContent = null; // Reference to the content area
         this.isInitialized = false;
     }
     
@@ -74,33 +195,31 @@ export class Program {
     async init() {
         if (this.isInitialized) return;
         
-        console.log(`Initializing program: ${this.id}`);
+        console.log(`Initializing program instance: ${this.instanceId} (Base: ${this.baseId})`);
         
-        // Create or get the window container
-        let windowElement = document.getElementById(this.id);
+        // Create the window DOM element
+        this.windowElement = this.createWindowElement();
+        document.body.appendChild(this.windowElement); 
+        this.windowContent = this.windowElement.querySelector('.window-content');
         
-        if (!windowElement) {
-            // Create new window if it doesn't exist
-            windowElement = this.createWindowElement();
-            document.body.appendChild(windowElement);
-        }
+        // Create a WindowManager for THIS instance
+        this.windowManager = createWindowManager(this.instanceId, {
+            initialWidth: `${this.width}px`,
+            initialHeight: `${this.height}px`,
+            minimized: false, // Usually launch unminimized
+            onFocus: () => ProgramManager.setFocusedInstance(this.instanceId),
+            onClose: () => ProgramManager.close(this.instanceId),
+            // Add other callbacks as needed (onMinimize, onDragEnd etc.)
+        });
         
-        // Retrieve the existing window manager instance created in script.js
-        this.windowManager = window.windowManagers ? window.windowManagers[this.id] : null;
         if (!this.windowManager) {
-             console.error(`[Program ${this.id}] Could not find pre-initialized WindowManager in global registry.`);
-             // Optionally handle this error, maybe prevent further initialization?
+            console.error(`[Program ${this.instanceId}] Failed to create WindowManager.`);
+            // Clean up DOM element if manager creation fails?
+            this.windowElement.remove();
+            throw new Error('WindowManager creation failed'); // Throw to signal failure
         }
-
-        // Store reference to content area
-        this.windowContent = windowElement.querySelector('.window-content');
         
-        // Mark as initialized
         this.isInitialized = true;
-        
-        // Show the window
-        // REMOVED: this.show();
-        // Window should be shown via dock icon click / WindowManager
     }
     
     /**
@@ -109,75 +228,112 @@ export class Program {
      */
     createWindowElement() {
         const windowElement = document.createElement('div');
-        windowElement.id = this.id;
-        windowElement.className = `window-container ${this.id}-container`;
+        windowElement.id = this.instanceId; // Use unique instance ID
+        // Add baseId class for potential general styling
+        windowElement.className = `window-container ${this.baseId}-container`; 
+        windowElement.style.width = `${this.width}px`;
+        windowElement.style.height = `${this.height}px`;
         
         // Create window header
         const header = document.createElement('div');
-        header.className = `window-header ${this.id}-header`;
+        header.className = `window-header ${this.baseId}-header`; // Style based on base type
         
         // Create window controls
         const controls = document.createElement('div');
-        controls.className = `window-controls ${this.id}-controls`;
+        controls.className = `window-controls ${this.baseId}-controls`;
         
-        const redButton = document.createElement('span');
-        redButton.className = 'control red';
-        
-        const yellowButton = document.createElement('span');
-        yellowButton.className = 'control yellow';
-        
-        const greenButton = document.createElement('span');
-        greenButton.className = 'control green';
-        
-        controls.appendChild(redButton);
-        controls.appendChild(yellowButton);
-        controls.appendChild(greenButton);
+        // Add buttons (consider making this reusable)
+        controls.innerHTML = '<span class="control red"></span><span class="control yellow"></span><span class="control green"></span>';
         
         // Create title
-        const title = document.createElement('div');
-        title.className = `window-title ${this.id}-title`;
-        title.textContent = this.title;
+        const titleDiv = document.createElement('div');
+        titleDiv.className = `window-title ${this.baseId}-title`;
+        titleDiv.textContent = this.title;
         
         // Add icon if specified
         if (this.icon) {
             const iconElement = document.createElement('i');
             iconElement.className = `fas ${this.icon}`;
-            title.insertBefore(iconElement, title.firstChild);
+            titleDiv.insertBefore(iconElement, titleDiv.firstChild);
         }
         
         header.appendChild(controls);
-        header.appendChild(title);
+        header.appendChild(titleDiv);
         
         // Create content area
         const content = document.createElement('div');
-        content.className = `${this.id}-content window-content`;
+        // Use instanceId for content if needed, but baseId is common
+        content.className = `window-content ${this.baseId}-content`; 
         
-        // Create resize handle
-        const resizeHandle = document.createElement('div');
-        resizeHandle.className = 'resize-handle';
-        resizeHandle.id = `${this.id}-resize-handle`;
+        // Create resize handle (bottom-right)
+        const resizeHandleBR = document.createElement('div');
+        resizeHandleBR.className = 'resize-handle resize-handle-br'; // Added specific class
+        resizeHandleBR.id = `${this.instanceId}-resize-handle-br`;
+        
+        // Create resize handle (bottom-left)
+        const resizeHandleBL = document.createElement('div');
+        resizeHandleBL.className = 'resize-handle resize-handle-bl'; // New class
+        resizeHandleBL.id = `${this.instanceId}-resize-handle-bl`;
         
         // Assemble window
         windowElement.appendChild(header);
         windowElement.appendChild(content);
-        windowElement.appendChild(resizeHandle);
+        windowElement.appendChild(resizeHandleBR); // Add bottom-right handle
+        windowElement.appendChild(resizeHandleBL); // Add bottom-left handle
         
+        // --- Center Window on Screen --- 
+        windowElement.style.position = 'absolute'; 
+        // Calculate center position, ensuring it stays within bounds
+        const top = Math.max(30, (window.innerHeight - this.height) / 2); // Ensure below menu bar
+        const left = Math.max(0, (window.innerWidth - this.width) / 2);
+        
+        windowElement.style.top = `${top}px`;
+        windowElement.style.left = `${left}px`;
+        // Remove transform if previously used for centering
+        windowElement.style.transform = 'none'; 
+        // -------------------------------
+
         return windowElement;
     }
     
     /**
      * Show the program window
      */
-    show() {
-        // Now this.windowManager should be correctly set if init() ran successfully
+    async show() {
+        // Ensure initialization is complete before showing
+        if (this._initPromise) {
+            try {
+                 console.log(`[Program ${this.instanceId}] Waiting for init promise before showing...`);
+                 await this._initPromise;
+                 console.log(`[Program ${this.instanceId}] Init promise resolved.`);
+                 // Clear the promise reference once resolved to avoid re-awaiting unnecessarily?
+                 // delete this._initPromise; 
+            } catch (error) {
+                 console.error(`[Program ${this.instanceId}] Init failed before show could complete:`, error);
+                 // ProgramManager should have handled cleanup in the .catch 
+                 // where _initPromise was defined.
+                 return; // Don't proceed if init failed
+            }
+        } else if (!this.isInitialized) {
+             // Fallback if promise wasn't set or init wasn't called yet?
+             // This might indicate a problem in launch logic.
+             console.warn(`[Program ${this.instanceId}] Show called without _initPromise and not initialized. Attempting late init.`);
+             try {
+                 await this.init();
+             } catch (error) {
+                  console.error(`[Program ${this.instanceId}] Late init failed during show:`, error);
+                  return;
+             }
+        }
+        
+        // Proceed with showing only if initialization succeeded and WM exists
         if (!this.windowManager) {
-            console.error(`[Program ${this.id}] Show called but windowManager is not set.`);
+            console.error(`[Program ${this.instanceId}] Show called but windowManager is not set (likely due to init failure).`);
             return;
         }
         
+        console.log(`[Program ${this.instanceId}] Calling WindowManager.show()`);
         this.windowManager.show(); 
-
-        // Removed redundant DOM manipulation here, rely on WindowManager.show()
     }
     
     /**
@@ -186,7 +342,7 @@ export class Program {
     hide() {
         // Now this.windowManager should be correctly set if init() ran successfully
         if (!this.windowManager) {
-            console.error(`[Program ${this.id}] Hide called but windowManager is not set.`);
+            console.error(`[Program ${this.instanceId}] Hide/Minimize called but windowManager is not set.`);
             return;
         }
         
@@ -200,11 +356,31 @@ export class Program {
      * @param {string} path - Path to the CSS file
      */
     loadStylesheet(path) {
+        // Stylesheets are usually global, maybe check if needed per instance?
         if (document.querySelector(`link[href="${path}"]`)) return;
         
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = path;
         document.head.appendChild(link);
+    }
+
+    // Method to update the window title text
+    setTitle(newTitle) {
+        this.title = newTitle;
+        const titleElement = this.windowElement?.querySelector('.window-title');
+        if (titleElement) {
+            titleElement.textContent = newTitle;
+        }
+    }
+
+    close() { // Trigger the close process via ProgramManager
+        ProgramManager.close(this.instanceId);
+    }
+
+    // Optional: Method for programs to clean up resources (event listeners etc.)
+    destroy() {
+         console.log(`Destroying program instance: ${this.instanceId}`);
+         // Base implementation does nothing, subclasses can override
     }
 } 

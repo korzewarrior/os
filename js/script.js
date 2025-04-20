@@ -1,10 +1,11 @@
 // Main script file - Entry point
-import { initializeTerminal } from './programs/terminal.js';
-import { initializeBrowser } from './programs/browser.js';
-import { initializeMail, showMailApp } from './programs/mail.js';
-import { initializePdfViewer } from './programs/pdf-viewer.js';
-import { initializeSettings, showSettings } from './programs/settings.js';
-import { createWindowManager } from './window-manager.js';
+// Remove the named import, but keep importing the module to ensure class registration
+import './programs/terminal.js'; 
+import './programs/browser.js'; 
+import './programs/mail.js'; // Ensures MailProgram registers 
+import './programs/settings.js'; // Ensures SettingsProgram registers
+import './programs/pdf-viewer.js'; // Ensures PdfViewerProgram registers
+// import { createWindowManager } from './window-manager.js'; // WindowManager is created by Program now
 import { initializeDesktop } from './desktop.js';
 import { initializeMenuBar } from './menu-bar.js';
 import { Program, ProgramManager } from './program.js';
@@ -22,6 +23,22 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Start the system initialization sequence
     startSystemInitialization();
+    
+    // --- Add Desktop Click Listener for Focus --- 
+    document.body.addEventListener('click', (e) => {
+         // Check if the click is directly on the body or the #desktop-files container,
+         // but NOT on a window, dock item, or menu bar element.
+         if ((e.target === document.body || e.target.id === 'desktop-files') && 
+             !e.target.closest('.window-container') && 
+             !e.target.closest('.dock-item') && 
+             !e.target.closest('.menu-bar') &&
+             !e.target.closest('.context-menu')) { // Also ignore context menus
+             
+             console.log('Desktop background clicked. Setting focus to desktop.');
+             ProgramManager.setFocusedInstance(null); // Clear focus
+         }
+    }, false); // Use bubble phase
+    // -----------------------------------------
 });
 
 /**
@@ -107,12 +124,15 @@ function applyWallpaper() {
  * Start the system initialization sequence once UI preferences are applied
  */
 function startSystemInitialization() {
-    // Initialize core system and window management
-    initializeWindowManagement();
-    
-    // Initialize all apps
+    // Initialize application logic (registers program classes)
     initializeApplications();
     
+    // Initialize desktop (creates icons)
+    initializeDesktop(); 
+
+    // Initialize menu bar (sets up listeners)
+    initializeMenuBar();
+
     // Enhance UI elements
     enhanceUIElements();
     
@@ -126,63 +146,34 @@ function startSystemInitialization() {
 }
 
 /**
- * Initialize window management system
- */
-function initializeWindowManagement() {
-    console.log('Initializing window management system...');
-    
-    // Create window managers for all windows
-    createWindowManager('terminal', {
-        initialWidth: '800px',
-        initialHeight: '500px',
-        minimized: true
-    });
-    
-    createWindowManager('browser', {
-        initialWidth: '900px',
-        initialHeight: '600px',
-        minimized: true
-    });
-    
-    createWindowManager('settings', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true
-    });
-    
-    createWindowManager('mail', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true
-    });
-    
-    createWindowManager('pdf-viewer', {
-        initialWidth: '700px',
-        initialHeight: '500px',
-        minimized: true
-    });
-}
-
-/**
- * Initialize all applications
+ * Initialize all applications (mainly registers their classes)
  */
 function initializeApplications() {
-    console.log('Initializing applications...');
-    
-    // Initialize all application modules
-    initializeTerminal();
-    initializeBrowser();
-    initializeMail();
-    initializePdfViewer();
-    initializeSettings();
-    initializeDesktop();
-    initializeMenuBar();
-    
-    // --- Dock Icon Listeners ---
-    // TODO: Add listeners for remaining dock icons if not handled elsewhere
-    // Example:
-    // document.getElementById('terminal-dock-icon')?.addEventListener('click', () => ProgramManager.launch('terminal')?.show());
-    // ... other examples ...
+    console.log('Initializing applications (imports handle registration)...');
+    // Registration happens via imports above
+   
+    // --- Dock Icon Listeners --- 
+    const dockIcons = document.querySelectorAll('.dock-item');
+    dockIcons.forEach(icon => {
+        const newIcon = icon.cloneNode(true);
+        icon.parentNode.replaceChild(newIcon, icon);
+        
+        newIcon.addEventListener('click', function() {
+            const appId = this.id.replace('-dock-icon', '');
+            console.log(`[Dock Click] Launching/showing app: ${appId}`);
+            try {
+                const programInstance = ProgramManager.launch(appId); 
+                if (programInstance) { 
+                    programInstance.show();
+                } else {
+                    // No fallback needed if launch returns null - indicates class not registered
+                    console.error(`Program class not found or launch failed for ID: ${appId}`); 
+                }
+            } catch (error) {
+                 console.error(`Error during ProgramManager.launch for ${appId}:`, error);
+            }
+        });
+    });
 }
 
 /**

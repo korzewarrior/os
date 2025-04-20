@@ -152,14 +152,10 @@ body.dark-theme .window-container.dragged {
 /* Resize handle - consistent styling */
 .resize-handle {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
-  background: transparent;
-  z-index: 100;
-  pointer-events: auto !important; /* Ensure resize handle always receives events */
+  width: 15px; 
+  height: 15px;
+  /* background: rgba(0, 0, 0, 0.1); // Optional: for debugging */
+  z-index: 10; /* Ensure handles are clickable */
 }
 
 /* --- NEW: Edge and Corner Resize Handles --- */
@@ -341,4 +337,45 @@ body.dark-theme .window-container.dragged {
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+
+.resize-handle-br {
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize; /* Bottom-right resize cursor */
+}
+
+.resize-handle-bl {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize; /* Bottom-left resize cursor */
+}
+
+/* Optional: Visual indicator for handles */
+.resize-handle::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.resize-handle-br::after {
+    bottom: 0;
+    right: 0;
+    border-width: 0 0 8px 8px;
+    border-color: transparent transparent rgba(0,0,0,0.2) transparent;
+}
+
+.resize-handle-bl::after {
+    bottom: 0;
+    left: 0;
+    border-width: 0 8px 8px 0;
+    border-color: transparent rgba(0,0,0,0.2) transparent transparent;
+}
+
+/* Disable transitions during resize/drag for performance */
+.window-container.resizing,
+.window-container.dragged {
+    transition: none !important; /* Override transitions */
 } 

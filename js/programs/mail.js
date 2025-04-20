@@ -1,194 +1,170 @@
-import { createWindowManager } from '../window-manager.js';
+import { Program, ProgramManager } from '../program.js';
 
-let mailWindow;
+// Mail app logic (will be encapsulated in the class)
 
-// Functions for showing/hiding mail app
-export function showMailApp() {
-    console.log('Showing mail app');
-    const mailWindow = window.windowManagers ? window.windowManagers['mail'] : null;
-    if (mailWindow) {
-        mailWindow.show();
-        
-        // Immediately call resizeMessageBody to ensure proper layout
-        resizeMessageBody();
-        
-        // Focus the subject input - add a delay to ensure the window is visible
-        setTimeout(() => {
-            const subjectInput = document.getElementById('subject');
-            if (subjectInput) subjectInput.focus();
-            
-            // Adjust the message body height again after a short delay
-            resizeMessageBody();
-            
-            // And one more time after a longer delay to ensure all transitions are complete
-            setTimeout(resizeMessageBody, 300);
-        }, 100);
-    } else {
-        console.error('Mail window not initialized');
+class MailProgram extends Program {
+    static BASE_ID = 'mail';
+    static DEFAULT_TITLE = 'Mail';
+
+    constructor(instanceId, options = {}) {
+        super(instanceId, MailProgram.DEFAULT_TITLE, MailProgram.BASE_ID, 750, 550);
+        this.composeForm = null;
+        this.recipientInput = null;
+        this.subjectInput = null;
+        this.messageBody = null;
+        this.statusArea = null;
     }
-}
 
-// Helper function to resize message body to fit the available space
-function resizeMessageBody() {
-    const messageBody = document.getElementById('message-body');
-    const mailContent = document.querySelector('.mail-content');
-    const statusArea = document.getElementById('mail-status');
-    
-    if (messageBody && mailContent) {
-        const formHeader = document.querySelector('.form-header');
-        
-        if (formHeader) {
-            // Get the container's content area height
-            const contentHeight = mailContent.clientHeight;
-            
-            // Calculate heights of other elements
-            const headerHeight = formHeader.offsetHeight;
-            const statusHeight = statusArea && statusArea.innerHTML.trim() ? statusArea.offsetHeight : 0;
-            
-            // Account for top and bottom padding of mail-content and spacing between elements
-            const padding = 30; // Buffer to account for spacing between elements
-            
-            // Calculate available height for the message body
-            const availableHeight = contentHeight - headerHeight - statusHeight - padding;
-            
-            // Set height ensuring it doesn't go below minimum height
-            const minHeight = 100;
-            const finalHeight = Math.max(availableHeight, minHeight);
-            
-            messageBody.style.height = `${finalHeight}px`;
-            
-            console.log(`Resized message body: content=${contentHeight}, header=${headerHeight}, status=${statusHeight}, available=${availableHeight}, final=${finalHeight}`);
+    // Override createWindowElement to add mail-specific structure
+    createWindowElement() {
+        const windowElement = super.createWindowElement();
+        const contentArea = windowElement.querySelector('.window-content');
+        if (!contentArea) return windowElement;
+
+        contentArea.innerHTML = `
+            <div id="mail-status" class="mail-status-area"></div> 
+            <form id="compose-form" class="compose-area">
+                <div class="form-header">
+                    <div class="form-row">
+                        <label for="recipient">To:</label>
+                        <input type="email" id="recipient" required>
+                        <button type="button" class="send-button-inline" title="Send Email">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <label for="subject">Subject:</label>
+                        <input type="text" id="subject" placeholder="Enter subject here" required>
+                    </div>
+                </div>
+                <textarea id="message-body" placeholder="Write your message here..."></textarea>
+            </form>
+        `;
+        // Apply necessary styles for flex layout
+        contentArea.style.display = 'flex';
+        contentArea.style.flexDirection = 'column';
+        contentArea.style.padding = '15px';
+        contentArea.style.boxSizing = 'border-box';
+
+        return windowElement;
+    }
+
+    async init() {
+        if (this.isInitialized) return;
+        await super.init(); // Creates window, DOM, WindowManager
+        console.log(`[MailProgram ${this.instanceId}] Initializing...`);
+
+        // Find elements specific to this instance
+        this.composeForm = this.windowElement.querySelector('#compose-form');
+        this.recipientInput = this.windowElement.querySelector('#recipient');
+        this.subjectInput = this.windowElement.querySelector('#subject');
+        this.messageBody = this.windowElement.querySelector('#message-body');
+        this.statusArea = this.windowElement.querySelector('#mail-status');
+        const sendButtonInline = this.windowElement.querySelector('.send-button-inline');
+
+        if (!this.composeForm || !this.recipientInput || !this.subjectInput || !this.messageBody || !this.statusArea || !sendButtonInline) {
+            console.error(`[MailProgram ${this.instanceId}] Failed to find all mail UI elements.`);
+            this.close();
+            throw new Error('Mail UI elements not found');
         }
-    }
-}
 
-export function hideMailApp() {
-    console.log('Hiding mail app');
-    const mailWindow = window.windowManagers ? window.windowManagers['mail'] : null;
-    if (mailWindow) {
-        mailWindow.minimize();
-    }
-}
+        // Set default recipient (disabled)
+        this.recipientInput.value = "korze84@gmail.com";
+        this.recipientInput.setAttribute('disabled', 'true');
 
-export function initializeMail() {
-    console.log('Mail app initializing...');
-    
-    // Get elements
-    const composeForm = document.getElementById('compose-form');
-    const recipientInput = document.getElementById('recipient');
-    const subjectInput = document.getElementById('subject');
-    const messageBody = document.getElementById('message-body');
-    const sendButton = document.getElementById('send-email');
-    const sendButtonInline = document.querySelector('.send-button-inline');
-    
-    // Setup recipient
-    if (recipientInput) {
-        recipientInput.value = "korze84@gmail.com";
-        recipientInput.setAttribute('disabled', 'true');
-    }
-    
-    // Mail app logic
-    if (composeForm) {
-        composeForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendEmail();
-        });
-        
-        // Also handle inline send button click (redundant but for clarity)
-        if (sendButtonInline) {
-            sendButtonInline.addEventListener('click', (e) => {
-                e.preventDefault();
-                sendEmail();
+        // Add event listeners
+        this.composeForm.addEventListener('submit', (e) => { e.preventDefault(); this.sendEmail(); });
+        sendButtonInline.addEventListener('click', (e) => { e.preventDefault(); this.sendEmail(); });
+
+        // Handle resizing of the message body
+        this.setupResizeHandling();
+
+        // Focus subject input when shown
+        if (this.windowManager) {
+            this.windowManager.addOnShowCallback(() => {
+                setTimeout(() => this.subjectInput?.focus(), 100); 
+                setTimeout(() => this.resizeMessageBody(), 110); // Resize after focus/show
             });
         }
-    }
-    
-    // Function to handle email sending
-    function sendEmail() {
-        const recipient = recipientInput.value;
-        const subject = subjectInput.value;
-        const message = messageBody.value;
         
+        this.initialized = true;
+        console.log(`[MailProgram ${this.instanceId}] Initialization complete.`);
+        setTimeout(() => this.resizeMessageBody(), 200); // Initial resize
+    }
+
+    sendEmail() {
+        if (!this.subjectInput || !this.messageBody || !this.statusArea) return;
+        
+        const subject = this.subjectInput.value;
+        const message = this.messageBody.value;
+
         if (!subject || !message) {
             alert('Please complete the subject and message fields.');
             return;
         }
-        
-        // Display sending animation
-        const statusArea = document.getElementById('mail-status');
-        statusArea.innerHTML = `
+
+        this.statusArea.innerHTML = `
             <div class="sending-animation">
-                <p>Sending email to ${recipient}...</p>
+                <p>Sending email...</p> 
                 <div class="loading-dots"><span>.</span><span>.</span><span>.</span></div>
             </div>
         `;
-        
-        // Resize message body to account for the status area
-        setTimeout(resizeMessageBody, 10);
-        
-        // Simulate sending delay
+        this.resizeMessageBody(); // Resize after adding status
+
         setTimeout(() => {
-            statusArea.innerHTML = `
+            this.statusArea.innerHTML = `
                 <div class="success-message">
                     <p>✓ Message sent successfully!</p>
                     <p class="small">This is a simulation. No actual email was sent.</p>
                 </div>
             `;
-            
-            // Resize message body again after changing status content
-            setTimeout(resizeMessageBody, 10);
-            
-            // Reset form fields except recipient
-            subjectInput.value = '';
-            messageBody.value = '';
-            
-            // Auto-hide success message after a few seconds
+            this.resizeMessageBody(); // Resize after changing status
+            this.subjectInput.value = '';
+            this.messageBody.value = '';
             setTimeout(() => {
-                statusArea.innerHTML = '';
-                // Resize one more time after clearing the status area
-                setTimeout(resizeMessageBody, 10);
+                this.statusArea.innerHTML = '';
+                this.resizeMessageBody(); // Resize after clearing status
             }, 3000);
         }, 1500);
     }
-    
-    // Handle resizing
-    const mailContainer = document.getElementById('mail');
-    if (mailContainer) {
-        const resizeObserver = new ResizeObserver(entries => {
-            // Only apply if mail app is visible
-            if (mailContainer.classList.contains('minimized')) return;
-            
-            for (const entry of entries) {
-                resizeMessageBody();
-            }
-        });
-        
-        // Start observing the mail container
-        resizeObserver.observe(mailContainer);
-        
-        // Also listen for window resize events
-        window.addEventListener('resize', () => {
-            if (!mailContainer.classList.contains('minimized')) {
-                resizeMessageBody();
-            }
-        });
-        
-        // Make sure to resize when shown by getting the manager from the registry
-        const manager = window.windowManagers ? window.windowManagers['mail'] : null;
-        if (manager) {
-             manager.addOnShowCallback(() => {
-                 setTimeout(resizeMessageBody, 100);
-             });
-        } else {
-            console.error('Could not find mail window manager to add show callback');
+
+    resizeMessageBody() {
+        if (!this.messageBody || !this.windowElement) return;
+        const contentArea = this.windowElement.querySelector('.window-content');
+        const formHeader = this.windowElement.querySelector('.form-header');
+        const statusHeight = this.statusArea ? this.statusArea.offsetHeight : 0;
+
+        if (contentArea && formHeader) {
+            const contentHeight = contentArea.clientHeight;
+            const headerHeight = formHeader.offsetHeight;
+            const paddingAndMargins = 30; // Approx padding/margin
+            const availableHeight = contentHeight - headerHeight - statusHeight - paddingAndMargins;
+            const minHeight = 100;
+            this.messageBody.style.height = `${Math.max(minHeight, availableHeight)}px`;
+            console.log(`[MailProgram ${this.instanceId}] Resized message body to ${this.messageBody.style.height}`);
         }
-        
-        // Initial resize after a small delay to ensure rendering
-        setTimeout(resizeMessageBody, 200);
     }
     
-    return {
-        showMail: showMailApp,
-        hideMail: hideMailApp
-    };
-} 
+    setupResizeHandling() {
+         if (!this.windowElement) return;
+         const resizeObserver = new ResizeObserver(() => this.resizeMessageBody());
+         resizeObserver.observe(this.windowElement);
+         // Also maybe listen to window resize?
+         // window.addEventListener('resize', () => this.resizeMessageBody()); 
+         // Need careful cleanup in destroy if using window listener
+    }
+    
+    // Override destroy to clean up observers/listeners if necessary
+    // destroy() {
+    //     // Disconnect resizeObserver? Remove window listener?
+    //     super.destroy();
+    // }
+}
+
+// Register the Mail Program
+ProgramManager.register(MailProgram);
+
+// REMOVE old compatibility export
+// export function showMailApp() { ... } 

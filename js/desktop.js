@@ -3,6 +3,7 @@
 import { createWindowManager } from './window-manager.js';
 import { openPdfFile, showPdfViewer } from './programs/pdf-viewer.js';
 import { FileSystem } from './filesystem.js'; // Corrected import path
+import { Program, ProgramManager } from './program.js'; // Corrected import path for ProgramManager
 
 // Track which files are on the desktop (Consider if this array is still needed or if querying DOM is better)
 let desktopFiles = [];
@@ -64,20 +65,34 @@ function initializeDefaultFiles() {
         { name: 'commands.pdf', type: 'application/pdf', icon: 'img/icons/pdf-icon.svg' }
      ];
 
+     // Add web links using a consistent icon
+     // Use the browser icon as the placeholder for web links
+     const linkIconPath = 'img/icons/browser-icon.png'; 
+     const links = [
+        { name: 'korze.org', type: 'weblink', icon: linkIconPath, url: 'https://korze.org' },
+        { name: 'Leviathan', type: 'weblink', icon: linkIconPath, url: 'https://leviathan.korze.org' },
+        { name: 'better.game', type: 'weblink', icon: linkIconPath, url: 'https://korzewarrior.github.io/better.game/' }
+     ];
+
      const desktopContainer = document.getElementById('desktop-files');
 
+     // Add default files (like PDFs)
      defaults.forEach(file => {
-         // Check if file exists in FileSystem AND on desktop UI
-         const fsExists = FileSystem.readFile(file.name) !== null;
          const uiExists = desktopContainer.querySelector(`.desktop-file[data-filename="${file.name}"]`);
-         
-         if (!uiExists) { // Only add if not already on UI
+         if (!uiExists) { 
              console.log(`Adding default file to desktop UI: ${file.name}`);
-             addDesktopFileToUI(file.name, file.type, file.icon, desktopContainer);
-             // Optional: If it doesn't exist in FileSystem either, write it
-             if (!fsExists && file.content) {
-                 FileSystem.writeFile(file.name, file.content);
-             }
+             // Pass null for URL for regular files
+             addDesktopFileToUI(file.name, file.type, file.icon, desktopContainer, null);
+             // Note: FileSystem logic for defaults removed as it wasn't fully implemented
+         }
+     });
+     
+     // Add web link icons
+     links.forEach(link => {
+          const uiExists = desktopContainer.querySelector(`.desktop-file[data-filename="${link.name}"]`);
+         if (!uiExists) { 
+             console.log(`Adding web link icon to desktop UI: ${link.name}`);
+             addDesktopFileToUI(link.name, link.type, link.icon, desktopContainer, link.url);
          }
      });
 }
@@ -97,7 +112,7 @@ function getIconForFileType(fileType, fileName) {
  * Adds a single file icon element to the desktop DOM.
  * Separated from the main export function for clarity.
  */
-function addDesktopFileToUI(fileName, fileType, iconUrl, container) {
+function addDesktopFileToUI(fileName, fileType, iconUrl, container, url = null) {
     if (!container) {
         console.error('Desktop container not found for adding file UI');
         return null;
@@ -113,6 +128,9 @@ function addDesktopFileToUI(fileName, fileType, iconUrl, container) {
     fileElement.className = 'desktop-file';
     fileElement.dataset.filename = fileName;
     fileElement.dataset.filetype = fileType;
+    if (url) {
+        fileElement.dataset.url = url; // Store URL for weblinks
+    }
     
     const iconElement = document.createElement('img');
     iconElement.src = iconUrl;
@@ -137,8 +155,7 @@ function addDesktopFileToUI(fileName, fileType, iconUrl, container) {
     
     // Double click: Open
     fileElement.addEventListener('dblclick', () => {
-        // Use the updated openDesktopFile function
-        openDesktopFile(fileName, fileType); 
+        openDesktopFile(fileName, fileType, url); // Pass URL along
     });
     
     container.appendChild(fileElement);
@@ -166,84 +183,54 @@ export function addDesktopFile(fileName, fileType, iconUrl) {
      }
 }
 
-
 /**
- * Open a file from the desktop using FileSystem for text files.
- * @param {string} fileName - Name of the file to open
- * @param {string} fileType - MIME type or inferred type of the file
+ * Open a file or link from the desktop.
+ * @param {string} fileName - Name of the file/link icon
+ * @param {string} fileType - Inferred type ('application/pdf', 'weblink', etc.)
+ * @param {string|null} url - The URL if it's a weblink
  */
-export function openDesktopFile(fileName, fileType) {
-    console.log(`[Desktop] Attempting to open ${fileName} (Detected Type: ${fileType})`);
+export function openDesktopFile(fileName, fileType, url = null) {
+    console.log(`[Desktop] Opening ${fileName} (Type: ${fileType}, URL: ${url})`);
     
-    // Infer type if needed (e.g., from extension)
     const actualFileType = fileType === 'unknown' || !fileType ? 
-        (fileName.endsWith('.pdf') ? 'application/pdf' : (fileName.endsWith('.txt') ? 'text/plain' : 'unknown')) 
+        (fileName.endsWith('.pdf') ? 'application/pdf' : (url ? 'weblink' : 'unknown')) 
         : fileType;
     console.log(`[Desktop] Determined actual file type: ${actualFileType}`);
 
     switch (actualFileType) {
         case 'application/pdf':
-            if (fileName === 'commands.pdf') {
-                openCommandsReferencePdf();
+            console.log(`[Desktop] Launching PDF Viewer for: ${fileName}`);
+            // Use ProgramManager directly to launch/show the viewer
+            const pdfViewerProgram = ProgramManager.launch('pdf-viewer', { filePath: fileName });
+             if (pdfViewerProgram) {
+                 // REMOVED: pdfViewerProgram.show(); 
+                 // The show logic should be handled internally by the program 
+                 // after it has loaded the content in its init/openFile method.
+             } else {
+                 console.error('Could not launch PDF Viewer program.');
+                 alert('Error: Could not open PDF Viewer.');
+             }
+            break;
+        case 'weblink':
+            if (url) {
+                console.log(`[Desktop] Opening weblink: ${url}`);
+                // Get the browser program instance (launch if needed)
+                const browserProgram = ProgramManager.launch('browser'); 
+                if (browserProgram && typeof browserProgram.navigateTo === 'function') {
+                    browserProgram.navigateTo(url);
+                    // navigateTo should handle showing the window
+                } else {
+                     console.error('Could not get browser program instance or navigateTo method.');
+                     alert('Error: Could not open link in browser.');
+                }
             } else {
-                console.warn(`Opening generic PDF "${fileName}". Content loading might be needed.`);
-                openPdfFile(fileName);
+                 console.error(`[Desktop] Weblink icon "${fileName}" is missing URL data.`);
+                 alert('Error: Link is broken (missing URL).');
             }
             break;
         default:
             console.warn(`[Desktop] Unsupported file type: ${actualFileType} for file ${fileName}`);
-            alert(`Cannot open file: ${fileName}\nUnsupported file type.`);
+            alert(`Cannot open item: ${fileName}\nUnsupported type.`);
             break;
     }
-}
-
-/**
- * Opens a simulated PDF showing available terminal commands.
- * (Keep this function as is for the specific commands.pdf)
- */
-function openCommandsReferencePdf() {
-    const fileName = 'commands.pdf';
-    console.log(`PDF Viewer: Opening ${fileName}`);
-    const title = document.querySelector('.pdf-viewer-title');
-    const content = document.querySelector('.pdf-viewer-content');
-    
-    if (!title || !content) {
-        console.error('PDF Viewer elements not found');
-        return;
-    }
-
-    // Update the title
-    title.textContent = fileName;
-
-    // Commands list (from terminal.js reset function initially)
-    const commandsHtml = `
-        <h1>Terminal Commands Reference</h1>
-        <p>Here are the available commands:</p>
-        <ul>
-            <li><strong>ls</strong>: List files in current directory</li>
-            <li><strong>cd [dir]</strong>: Change directory (e.g., <code>cd projects</code>, <code>cd ..</code>)</li>
-            <li><strong>pwd</strong>: Show current directory path</li>
-            <li><strong>cat [file]</strong>: Display file contents (e.g., <code>cat about.txt</code>)</li>
-            <li><strong>whoami</strong>: Display user information</li>
-            <li><strong>showcase</strong>: Show component showcase</li>
-            <li><strong>ping [host]</strong>: Simulate network ping</li>
-            <li><strong>more</strong>: Display text page by page (example)</li>
-            <li><strong>clear</strong>: Clear terminal screen</li>
-            <li><strong>help</strong>: Show detailed help for all commands</li>
-            <li><strong>browser</strong>: Open the web browser app</li>
-            <li><strong>mail</strong>: Open the mail app</li>
-        </ul>
-        <p><em>Tip: Use Ctrl+C to clear the current input or reset certain command states.</em></p>
-    `;
-
-    // Create a simulated PDF view
-    const pdfContent = document.createElement('div');
-    pdfContent.className = 'simulated-pdf-content'; // Use existing style
-    pdfContent.innerHTML = commandsHtml;
-    
-    content.innerHTML = ''; // Clear previous content
-    content.appendChild(pdfContent);
-    
-    // Ensure PDF viewer is shown
-    showPdfViewer(); // Make sure to import this function
 } 

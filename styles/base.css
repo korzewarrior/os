@@ -182,4 +182,22 @@ h4, .text-sm {
 @keyframes loading {
   0%, 80%, 100% { transform: scale(0); opacity: 0; }
   40% { transform: scale(1); opacity: 1; }
+}
+
+/* Base styles for menu bar, dock, windows */
+.menu-bar {
+    /* ... existing styles ... */
+    height: 24px;
+    background-color: var(--menu-bar-bg);
+    color: var(--menu-text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    position: fixed; /* Keep fixed */
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10000; /* Increase z-index significantly */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 } 

@@ -1,5 +1,7 @@
 // PDF Viewer implementation (Formerly File Viewer)
-import { createWindowManager } from '../window-manager.js';
+import { Program, ProgramManager } from '../program.js';
+// Need to import TerminalProgram to access its static commands
+import { TerminalProgram } from './terminal.js';
 
 // Global reference to pdf viewer window manager
 // let fileViewerWindow; // No longer needed as we fetch from global registry
@@ -25,12 +27,9 @@ export function initializePdfViewer() {
  * Show the PDF viewer application
  */
 export function showPdfViewer() {
-    const pdfViewerWindow = window.windowManagers ? window.windowManagers['pdf-viewer'] : null;
-    if (pdfViewerWindow) {
-        pdfViewerWindow.show();
-    } else {
-        console.error('PDF Viewer window not initialized');
-    }
+    console.warn('showPdfViewer() called directly. Use ProgramManager.launch("pdf-viewer").show() instead.');
+    const instance = ProgramManager.launch('pdf-viewer');
+    instance?.show();
 }
 
 /**
@@ -47,157 +46,163 @@ export function hidePdfViewer() {
 
 /**
  * Open a PDF file in the viewer
- * @param {string} fileName - Name of the PDF file to open
+ * @param {string} filePath - Path to the PDF file to open
  */
-export function openPdfFile(fileName) {
-    console.log(`PDF Viewer: Opening PDF ${fileName}`);
-    const title = document.querySelector('.pdf-viewer-title');
-    const content = document.querySelector('.pdf-viewer-content');
-    
-    if (!title || !content) {
-        console.error('PDF Viewer elements not found');
-        return;
-    }
-    
-    // Update the title
-    title.textContent = fileName;
-    
-    // Clear existing content
-    content.innerHTML = '';
-    
-    // For resume.pdf, create a simulated resume view
-    if (fileName === 'resume.pdf') {
-        // Create a simulated PDF view for the resume
-        const resumeContent = document.createElement('div');
-        resumeContent.className = 'simulated-pdf-content';
-        
-        // Add resume content
-        resumeContent.innerHTML = `
-            <div class="resume-header">
-                <h1>Jane Smith</h1>
-                <div class="contact-info">
-                    <p>jane.smith@example.com | (987) 654-3210 | San Francisco, CA</p>
-                </div>
-            </div>
-            
-            <div class="resume-section">
-                <h2>Education</h2>
-                <div class="resume-item">
-                    <h3>Computer Science, M.S.</h3>
-                    <p>Stanford University, 1995-1997</p>
-                </div>
-                <div class="resume-item">
-                    <h3>Computer Science, B.S.</h3>
-                    <p>Massachusetts Institute of Technology, 1991-1995</p>
-                </div>
-            </div>
-            
-            <div class="resume-section">
-                <h2>Experience</h2>
-                <div class="resume-item">
-                    <h3>Chief Technology Officer</h3>
-                    <p>Global Tech Solutions, 2015-Present</p>
-                    <ul>
-                        <li>Leading a team of 200+ engineers in developing cutting-edge technology solutions</li>
-                        <li>Overseeing the company's technology strategy and innovation roadmap</li>
-                        <li>Implemented a cloud-based infrastructure that reduced costs by 40%</li>
-                    </ul>
-                </div>
-                <div class="resume-item">
-                    <h3>Senior Network Architect</h3>
-                    <p>Innovative Networks Inc., 2005-2015</p>
-                    <ul>
-                        <li>Designed and implemented scalable network solutions for Fortune 500 companies</li>
-                        <li>Managed a team of network engineers to ensure optimal performance and security</li>
-                        <li>Developed a proprietary network monitoring tool that increased uptime by 25%</li>
-                    </ul>
-                </div>
-                <div class="resume-item">
-                    <h3>Software Engineer</h3>
-                    <p>Tech Pioneers, 1997-2005</p>
-                    <ul>
-                        <li>Developed enterprise-level software applications in Java and C++</li>
-                        <li>Collaborated with cross-functional teams to deliver high-quality software products</li>
-                        <li>Optimized algorithms to improve processing speed by 50%</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="resume-section">
-                <h2>Skills</h2>
-                <div class="skills-list">
-                    <span class="skill-item">Java</span>
-                    <span class="skill-item">C++</span>
-                    <span class="skill-item">Cloud Computing</span>
-                    <span class="skill-item">Network Architecture</span>
-                    <span class="skill-item">Cybersecurity</span>
-                    <span class="skill-item">Project Management</span>
-                </div>
-            </div>
-        `;
-        
-        content.appendChild(resumeContent);
-    } else {
-        // Generic PDF message for other files
-        content.innerHTML = `<div class="pdf-placeholder">This is a placeholder for ${fileName}</div>`;
-    }
-    
-    // Show the file viewer
-    showPdfViewer();
+export function openPdfFile(filePath) {
+    console.warn('openPdfFile() called directly. Use ProgramManager.launch("pdf-viewer", {filePath}).show() instead.');
+    const instance = ProgramManager.launch('pdf-viewer', { filePath: filePath });
+    instance?.show(); // Launch or get existing, then show
 }
 
 /**
  * Open a text file in the viewer
- * @param {string} fileName - Name of the text file to open
+ * @param {string} filePath - Path to the text file to open
  */
-export function openTextFile(fileName) {
-    console.log(`PDF Viewer: Opening Text ${fileName}`); // Log clarifies it's currently in PDF viewer
-    const title = document.querySelector('.pdf-viewer-title');
-    const content = document.querySelector('.pdf-viewer-content');
-    
-    if (!title || !content) {
-        console.error('PDF Viewer elements not found');
-        return;
+export function openTextFile(filePath) {
+    console.warn('openTextFile() called directly. Use ProgramManager.launch("pdf-viewer", {filePath}).show() instead.');
+    const instance = ProgramManager.launch('pdf-viewer', { filePath: filePath });
+    instance?.show(); 
+}
+
+// PDF Viewer logic (will be encapsulated)
+
+class PdfViewerProgram extends Program {
+    static BASE_ID = 'pdf-viewer';
+    static DEFAULT_TITLE = 'PDF Viewer';
+
+    constructor(instanceId, options = {}) {
+        super(instanceId, PdfViewerProgram.DEFAULT_TITLE, PdfViewerProgram.BASE_ID, 800, 600);
+        this.initialized = false;
+        // Options might include initial file to open, e.g., options.filePath
+        this.initialFilePath = options.filePath || null;
+    }
+
+    // Override createWindowElement to add basic viewer structure
+    createWindowElement() {
+        const windowElement = super.createWindowElement();
+        const contentArea = windowElement.querySelector('.window-content');
+        if (!contentArea) return windowElement;
+        
+        // No specific complex structure needed for the content area by default
+        // The openFile method will populate it.
+        contentArea.innerHTML = `<p style="padding: 20px;">PDF Viewer Ready. Open a file.</p>`; 
+        contentArea.style.padding = '0'; // Remove base padding if content adds its own
+        contentArea.style.overflow = 'auto'; // Ensure content scrolls
+
+        return windowElement;
+    }
+
+    async init() {
+        if (this.initialized) return;
+        await super.init();
+        console.log(`[PdfViewerProgram ${this.instanceId}] Initializing...`);
+        
+        // No complex listeners needed for basic viewer
+        this.initialized = true;
+        console.log(`[PdfViewerProgram ${this.instanceId}] Initialization complete.`);
+        
+        // Open initial file if provided
+        if (this.initialFilePath) {
+             this.openFile(this.initialFilePath);
+        }
+    }
+
+    // Method to open and display a file (handles PDF/Text distinction)
+    openFile(filePath) {
+         if (!this.initialized || !this.windowContent || !this.windowElement) {
+             console.error('PDF Viewer not ready to open file.');
+             // Attempt late init?
+             this.init().then(() => this.displayFileContent(filePath))
+                       .catch(err => console.error('Late init failed for PDF Viewer', err));
+             return;
+         }
+         this.displayFileContent(filePath);
     }
     
-    // Update the title
-    title.textContent = fileName;
-    
-    // Clear existing content
-    content.innerHTML = '';
-    
-    // Create a simulated text view
-    const textContent = document.createElement('div');
-    textContent.className = 'text-file-content';
-    
-    // Add text content based on filename
-    if (fileName === 'document.txt') {
-        textContent.innerHTML = `
-            <pre class="text-content">
-# Project Notes
+    displayFileContent(filePath) {
+         const fileName = filePath.substring(filePath.lastIndexOf('/') + 1) || filePath;
+         console.log(`[PdfViewerProgram ${this.instanceId}] Displaying: ${fileName}`);
+         
+         this.setTitle(fileName); // Update window title
+         this.windowContent.innerHTML = ''; // Clear previous content
 
-This is a simple text document that demonstrates
-the text viewing capabilities of our OS.
-
-## Features to implement:
-
-- [x] Create desktop interface
-- [x] Add file icons
-- [x] Implement PDF viewer
-- [x] Add text file support
-- [ ] Implement file creation
-- [ ] Add drag and drop support
-- [ ] Create file context menu
-
-Feel free to add more desktop files as needed.
-            </pre>
-        `;
-    } else {
-        textContent.innerHTML = `<pre class="text-content">Contents of ${fileName}</pre>`;
+         if (fileName.toLowerCase().endsWith('.pdf')) {
+             this.displayPdfContent(fileName);
+         } else if (fileName.toLowerCase().endsWith('.txt')) {
+             this.displayTextContent(fileName); 
+         } else {
+             this.windowContent.innerHTML = `<p class="pdf-placeholder">Cannot display file type: ${fileName}</p>`;
+         }
+         this.show(); // Make sure window is visible
     }
     
-    content.appendChild(textContent);
+    displayPdfContent(fileName) {
+         let htmlContent = '';
+         // Special handling for known PDFs
+         if (fileName === 'resume.pdf') {
+             // Paste resume HTML
+             htmlContent = `
+                <div class="resume-header">
+                    <h1>Jane Smith</h1>
+                    <div class="contact-info">
+                        <p>jane.smith@example.com | (987) 654-3210 | San Francisco, CA</p>
+                    </div>
+                </div>
+                <div class="resume-section"><h2>Education</h2>...</div> 
+                <div class="resume-section"><h2>Experience</h2>...</div>
+                <div class="resume-section"><h2>Skills</h2>...</div>
+                `; // (Ensure full resume HTML is included here)
+         } else if (fileName === 'commands.pdf') {
+              // Dynamically generate commands list
+              let commandListHtml = '';
+              const commands = TerminalProgram.COMMANDS || {}; // Get commands from Terminal class
+              const sortedCommands = Object.keys(commands).sort();
+              
+              sortedCommands.forEach(cmd => {
+                 commandListHtml += `<li><strong>${cmd}</strong>: ${commands[cmd]}</li>`;
+              });
+
+              htmlContent = `
+                <h1>Terminal Commands Reference</h1>
+                <p>Available commands:</p>
+                <ul>
+                    ${commandListHtml} 
+                </ul>
+                <p><em>Tip: Use Arrow Keys for command history.</em></p>
+                `;
+         } else {
+             htmlContent = `<div class="pdf-placeholder">Simulated view of ${fileName}</div>`;
+         }
+         const pdfDiv = document.createElement('div');
+         pdfDiv.className = 'simulated-pdf-content'; 
+         pdfDiv.innerHTML = htmlContent;
+         this.windowContent.appendChild(pdfDiv);
+    }
     
-    // Show the viewer
-    showPdfViewer();
-} 
+    displayTextContent(fileName) {
+        let text = `Placeholder for ${fileName}`; // Default
+        // Load actual content if possible - requires FileSystem access
+        // For now, using placeholder based on name
+        if (fileName === 'notes.txt') { 
+             text = "My personal notes...\n- Item 1\n- Item 2";
+        }
+        const pre = document.createElement('pre');
+        pre.className = 'text-file-content'; 
+        pre.style.fontFamily = 'var(--font-monospace)';
+        pre.style.color = 'var(--text-primary)';
+        pre.style.backgroundColor = 'var(--window-bg-alt)';
+        pre.style.padding = '20px';
+        pre.style.whiteSpace = 'pre-wrap'; // Allow text wrapping
+        pre.textContent = text;
+        this.windowContent.appendChild(pre);
+    }
+}
+
+// Register the Program
+ProgramManager.register(PdfViewerProgram);
+
+// Remove ALL old compatibility exports
+// export function showPdfViewer() { ... }
+// export function openPdfFile(filePath) { ... }
+// export function openTextFile(filePath) { ... } 
+// export function initializePdfViewer() { ... } 

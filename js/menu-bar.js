@@ -5,7 +5,7 @@ import { Program, ProgramManager } from './program.js';
 import { AboutProgram } from './programs/about.js';
 
 // Track the currently active application window
-let activeWindow = null;
+// let activeWindow = null;
 const DEFAULT_APP = 'desktop';
 
 // Store menu configurations for different applications
@@ -81,6 +81,9 @@ const logoMenu = [
 // Track if we've already initialized event listeners
 let initialized = false;
 
+// Make updateMenuBarForApp globally accessible for ProgramManager
+window.updateMenuBarForApp = updateMenuBarForApp;
+
 /**
  * Initialize the menu bar
  */
@@ -96,7 +99,7 @@ export function initializeMenuBar() {
     setInterval(updateClock, 60000); // Update every minute
     
     // Setup simple window focus listeners
-    setupSimpleWindowListeners();
+    // setupSimpleWindowListeners();
     
     // Initialize OS logo menu
     setupLogoMenu();
@@ -108,92 +111,107 @@ export function initializeMenuBar() {
     testLogoMenu();
     
     // Set desktop as initially active
-    setActiveWindow(DEFAULT_APP);
+    // setActiveWindow(DEFAULT_APP);
 }
 
 /**
  * Setup simple window tracking with minimal overhead
  */
-function setupSimpleWindowListeners() {
-    // Setup dock icon clicks - using WindowManager instances when available
-    const dockIcons = document.querySelectorAll('.dock-item');
-    dockIcons.forEach(icon => {
-        icon.addEventListener('click', function() {
-            const appId = this.id.replace('-dock-icon', '');
-            
-            // Check if there's a WindowManager instance for this app
-            if (window.windowManagers && window.windowManagers[appId]) {
-                // Use the WindowManager's show method
-                window.windowManagers[appId].show();
-            } else {
-                // Fallback to the simple approach
-                showApplication(appId);
-            }
-        });
-    });
-    
-    // Setup window header clicks for focus
-    document.querySelectorAll('.window-header').forEach(header => {
-        header.addEventListener('mousedown', function() {
-            const window = this.closest('.window-container');
-            if (window && !window.classList.contains('minimized')) {
-                const appId = window.id;
-                
-                // Use WindowManager if available
-                if (window.windowManagers && window.windowManagers[appId]) {
-                    window.windowManagers[appId].bringToFront();
-                } else {
-                    // Fallback to the simple approach
-                    // Bring to front
-                    document.querySelectorAll('.window-container').forEach(win => {
-                        win.style.zIndex = '100';
-                    });
-                    window.style.zIndex = '101';
-                    
-                    // Set as active
-                    setActiveWindow(appId);
-                }
-            }
-        });
-    });
-    
-    // Setup window controls (red button for minimize)
-    document.querySelectorAll('.control.red').forEach(button => {
-        button.addEventListener('click', function() {
-            const window = this.closest('.window-container');
-            if (window) {
-                const appId = window.id;
-                
-                // Use WindowManager if available
-                if (window.windowManagers && window.windowManagers[appId]) {
-                    window.windowManagers[appId].minimize();
-                } else {
-                    // Fallback to the simple approach
-                    window.classList.add('minimized');
-                    
-                    // Update dock icon
-                    const dockIcon = document.getElementById(`${appId}-dock-icon`);
-                    if (dockIcon) {
-                        dockIcon.classList.remove('active');
-                    }
-                    
-                    // Set desktop as active
-                    setActiveWindow(DEFAULT_APP);
-                }
-            }
-        });
-    });
-    
-    // Simple desktop click handler
-    document.addEventListener('click', function(e) {
-        // Check if clicked outside any window and dock
-        if (!e.target.closest('.window-container') && 
-            !e.target.closest('.dock-item') && 
-            !e.target.closest('.menu-bar')) {
-            setActiveWindow(DEFAULT_APP);
-        }
-    });
-}
+// function setupSimpleWindowListeners() {
+//     // Setup dock icon clicks - consistently use ProgramManager
+//     const dockIcons = document.querySelectorAll('.dock-item');
+//     dockIcons.forEach(icon => {
+//         // Remove previous listener if any to prevent duplicates
+//         const newIcon = icon.cloneNode(true);
+//         icon.parentNode.replaceChild(newIcon, icon);
+//         
+//         newIcon.addEventListener('click', function() {
+//             const appId = this.id.replace('-dock-icon', '');
+//             console.log(`[Dock Click] Launching/showing app: ${appId}`);
+//             
+//             // Consistently use ProgramManager to launch/get the instance
+//             const programInstance = ProgramManager.launch(appId);
+//             
+//             if (programInstance && typeof programInstance.show === 'function') {
+//                 programInstance.show(); // Show the program window
+//             } else if (appId === 'mail') {
+//                 // Special case for mail if it doesn't use Program class yet
+//                 // Replace with ProgramManager.launch('mail').show() if mail is converted
+//                 showMailApp(); 
+//             } else if (appId === 'settings'){
+//                  // Special case for settings if it doesn't use Program class yet
+//                  showSettings();
+//             } else {
+//                 console.error(`Failed to launch or show program with ID: ${appId}`);
+//                 // Fallback? Maybe show basic element if manager exists?
+//                 // const manager = window.windowManagers ? window.windowManagers[appId] : null;
+//                 // if(manager) manager.show();
+//             }
+//         });
+//     });
+//     
+//     // Setup window header clicks for focus
+//     document.querySelectorAll('.window-header').forEach(header => {
+//         header.addEventListener('mousedown', function() {
+//             const window = this.closest('.window-container');
+//             if (window && !window.classList.contains('minimized')) {
+//                 const appId = window.id;
+//                 
+//                 // Use WindowManager if available
+//                 if (window.windowManagers && window.windowManagers[appId]) {
+//                     window.windowManagers[appId].bringToFront();
+//                 } else {
+//                     // Fallback to the simple approach
+//                     // Bring to front
+//                     document.querySelectorAll('.window-container').forEach(win => {
+//                         win.style.zIndex = '100';
+//                     });
+//                     window.style.zIndex = '101';
+//                     
+//                     // Set as active
+//                     setActiveWindow(appId);
+//                 }
+//             }
+//         });
+//     });
+//     
+//     // Setup window controls (red button for minimize)
+//     document.querySelectorAll('.control.red').forEach(button => {
+//         button.addEventListener('click', function() {
+//             const window = this.closest('.window-container');
+//             if (window) {
+//                 const appId = window.id;
+//                 
+//                 // Use WindowManager if available
+//                 if (window.windowManagers && window.windowManagers[appId]) {
+//                     window.windowManagers[appId].minimize();
+//                 } else {
+//                     // Fallback to the simple approach
+//                     window.classList.add('minimized');
+//                     
+//                     // Update dock icon
+//                     const dockIcon = document.getElementById(`${appId}-dock-icon`);
+//                     if (dockIcon) {
+//                         dockIcon.classList.remove('active');
+//                     }
+//                     
+//                     // Set desktop as active
+//                     setActiveWindow(DEFAULT_APP);
+//                 }
+//             }
+//         });
+//     });
+//     
+//     // Simple desktop click handler
+//     document.addEventListener('click', function(e) {
+//         // Check if clicked outside any window and dock
+//         if (!e.target.closest('.window-container') && 
+//             !e.target.closest('.dock-item') && 
+//             !e.target.closest('.menu-bar')) {
+//             setActiveWindow(DEFAULT_APP);
+//         }
+//     });
+// }
 
 /**
  * Setup the OS logo menu
@@ -308,18 +326,11 @@ function toggleLogoMenu() {
  * Setup all application menu dropdowns
  */
 function setupAppMenus() {
-    // Get all menu items
-    const menuItems = document.querySelectorAll('.menu-item');
-    
+    const menuItems = document.querySelectorAll('.menu-item:not(.app-name):not(.menu-bar-logo)');
     menuItems.forEach(item => {
-        // Skip the app name item
-        if (item.classList.contains('app-name')) return;
-        
-        // Clone to remove existing listeners
         const newItem = item.cloneNode(true);
         item.parentNode.replaceChild(newItem, item);
-        
-        // Create dropdown for this menu item
+
         const dropdown = document.createElement('div');
         dropdown.className = 'menu-dropdown';
         dropdown.style.width = 'auto';
@@ -346,9 +357,7 @@ function setupAppMenus() {
             toggleAppMenu(this);
         });
     });
-    
-    // Initially populate menus
-    updateMenus();
+    updateMenuBarForApp(DEFAULT_APP); // Initial update for desktop
 }
 
 /**
@@ -386,148 +395,71 @@ function hideAllMenus() {
 }
 
 /**
- * Set the active window and update the UI accordingly
- * @param {string} windowId - ID of the window to set as active
- */
-export function setActiveWindow(windowId) {
-    console.log(`[Menu Bar] setActiveWindow called with ID: ${windowId}. Current active: ${activeWindow}`);
-    // If same window is already active, no need to change
-    if (activeWindow === windowId) {
-        console.log(`[Menu Bar] Window ${windowId} is already active.`);
-        // return; // Let's allow it to run through anyway to ensure menus update
-    }
-    
-    console.log(`Setting active window to: ${windowId}`);
-    
-    // Update active window state
-    activeWindow = windowId;
-    
-    // Update app name in menu bar
-    updateAppName();
-    
-    // Update active window indicators in DOM
-    document.querySelectorAll('.window-container').forEach(window => {
-        // Remove focused class from all windows
-        window.classList.remove('window-focused');
-        
-        // Add focused class to active window
-        if (window.id === windowId) {
-            window.classList.add('window-focused');
-        }
-    });
-    
-    // Update the dock icons
-    document.querySelectorAll('.dock-item').forEach(icon => {
-        const appId = icon.id.replace('-dock-icon', '');
-        
-        // Remove active state from all dock icons
-        icon.classList.remove('active');
-        
-        // Add active state to dock icon for active window
-        if (appId === windowId && windowId !== DEFAULT_APP) {
-            icon.classList.add('active');
-        }
-    });
-    
-    // Update menus for this application
-    updateMenus();
-}
-
-/**
  * Update the application name displayed in the menu bar
  */
 function updateAppName() {
     const appNameElement = document.querySelector('.menu-item.app-name');
     if (!appNameElement) return;
+
+    const focusedInstance = ProgramManager.getFocusedInstance();
+    const baseId = focusedInstance ? focusedInstance.baseId : DEFAULT_APP;
     
-    let appName = "korzeOS";
-    
-    switch (activeWindow) {
-        case 'terminal':
-            appName = "Terminal";
-            break;
-        case 'browser':
-            appName = "Browser";
-            break;
-        case 'mail':
-            appName = "Mail";
-            break;
-        case 'pdf-viewer':
-            appName = "PDF View";
-            break;
+    let appName = "korzeOS"; // Default
+    const programClass = ProgramManager.programClasses[baseId];
+    if (programClass && programClass.DEFAULT_TITLE) { // Use a static title property if defined
+         appName = programClass.DEFAULT_TITLE;
+    } else { // Fallback based on ID
+         switch (baseId) {
+            case 'terminal': appName = "Terminal"; break;
+            case 'browser': appName = "Browser"; break;
+            case 'mail': appName = "Mail"; break;
+            case 'pdf-viewer': appName = "PDF View"; break;
+            // Add cases for other registered base IDs
+         }
     }
-    
     appNameElement.textContent = appName;
 }
 
 /**
  * Update menus based on active window
  */
-function updateMenus() {
-    // Get all menu items
-    const menuItems = document.querySelectorAll('.menu-item:not(.app-name)');
-    
-    // For each menu item, update its dropdown
+function updateMenuBarForApp(baseId) {
+    console.log(`[Menu Bar] Updating menus for focused app type: ${baseId}`);
+    updateAppName(); // Update the app name display
+
+    const menuItems = document.querySelectorAll('.menu-item:not(.app-name):not(.menu-bar-logo)');
     menuItems.forEach(item => {
         const menuName = item.textContent.toLowerCase();
         const dropdown = item.querySelector('.menu-dropdown');
-        
         if (!dropdown) return;
-        
-        // Clear the dropdown
         dropdown.innerHTML = '';
-        
-        // Get menu items based on active window
-        const currentMenuItems = getMenuItemsForMenu(menuName);
-        
-        // *** NEW: Hide parent menu item if no actions ***
-        if (!currentMenuItems || currentMenuItems.length === 0) {
-            item.style.display = 'none'; // Hide the top-level menu item (e.g., "Edit")
-            return; // Stop processing this menu item
-        } else {
-            item.style.display = ''; // Ensure it's visible if it has items
-        }
-        // *** End NEW ***
 
-        // Create menu items
-        currentMenuItems.forEach(menuItem => {
-            if (menuItem.separator) {
-                const separator = document.createElement('div');
-                separator.className = 'dropdown-separator';
-                separator.style.height = '1px';
-                separator.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                separator.style.margin = '5px 0';
-                dropdown.appendChild(separator);
-            } else {
-                const itemElement = document.createElement('div');
-                itemElement.className = 'dropdown-item';
-                itemElement.textContent = menuItem.label;
-                itemElement.dataset.action = menuItem.action;
-                itemElement.style.padding = '8px 15px';
-                itemElement.style.color = 'var(--menu-text)';
-                itemElement.style.cursor = 'pointer';
-                itemElement.style.whiteSpace = 'nowrap';
-                
-                // Add hover effect
-                itemElement.addEventListener('mouseover', function() {
-                    this.style.backgroundColor = 'var(--menu-hover)';
-                });
-                
-                itemElement.addEventListener('mouseout', function() {
-                    this.style.backgroundColor = '';
-                });
-                
-                // Add click handler
-                itemElement.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    console.log(`Executing action: ${menuItem.action}`);
-                    handleMenuAction(menuItem.action);
-                    hideAllMenus();
-                });
-                
-                dropdown.appendChild(itemElement);
-            }
-        });
+        const currentMenuItems = getMenuItemsForMenu(menuName, baseId); // Pass baseId
+        
+        if (!currentMenuItems || currentMenuItems.length === 0) {
+            item.style.display = 'none'; 
+        } else {
+            item.style.display = '';
+            currentMenuItems.forEach(menuItem => {
+                 // ... (logic to create dropdown item elements remains the same) ...
+                  const itemElement = document.createElement('div');
+                  itemElement.className = menuItem.separator ? 'dropdown-separator' : 'dropdown-item';
+                  if (!menuItem.separator) {
+                     itemElement.textContent = menuItem.label;
+                     itemElement.dataset.action = menuItem.action;
+                     // ... styling and event listeners ...
+                     itemElement.addEventListener('click', function(e) {
+                         e.stopPropagation();
+                         console.log(`Executing action: ${menuItem.action}`);
+                         handleMenuAction(menuItem.action); // handleMenuAction needs focus info
+                         hideAllMenus();
+                     });
+                  } else {
+                      // Separator styling
+                  }
+                  dropdown.appendChild(itemElement);
+            });
+        }
     });
 }
 
@@ -536,28 +468,18 @@ function updateMenus() {
  * @param {string} menuName - Name of the menu (file, edit, etc.)
  * @returns {Array} Array of menu items
  */
-function getMenuItemsForMenu(menuName) {
-    console.log(`[getMenuItems] Requesting menu: '${menuName}', Active window: '${activeWindow}'`);
-    // Standard menus that are the same for all apps
+function getMenuItemsForMenu(menuName, baseId) {
+    console.log(`[getMenuItems] Requesting menu: '${menuName}', App Type: '${baseId}'`);
     if (menuName === 'window') {
-        console.log('[getMenuItems] Returning standard window menu.');
         return standardMenus.window;
     }
-    
-    // App-specific menus
-    if (activeWindow && appMenus[activeWindow] && appMenus[activeWindow][menuName]) {
-        console.log(`[getMenuItems] Returning menu '${menuName}' for app '${activeWindow}'.`);
-        return appMenus[activeWindow][menuName];
+    if (baseId && appMenus[baseId] && appMenus[baseId][menuName]) {
+        return appMenus[baseId][menuName];
     }
-    
-    // Default app menus (Desktop focus)
-    if (appMenus[DEFAULT_APP] && appMenus[DEFAULT_APP][menuName]) {
-        console.log(`[getMenuItems] Returning default desktop menu '${menuName}'.`);
+    // Default to desktop menus if focus is on desktop
+    if (baseId === DEFAULT_APP && appMenus[DEFAULT_APP] && appMenus[DEFAULT_APP][menuName]) {
         return appMenus[DEFAULT_APP][menuName];
     }
-    
-    // Return empty array if no menu items found
-    console.log(`[getMenuItems] No menu found for '${menuName}' with active window '${activeWindow}'.`);
     return [];
 }
 
@@ -567,43 +489,33 @@ function getMenuItemsForMenu(menuName) {
  */
 function handleMenuAction(action) {
     console.log(`Handling menu action: ${action}`);
-    
-    // Handle action based on the active window
-    if (activeWindow === 'terminal') {
-        handleTerminalAction(action);
-    } else if (activeWindow === 'browser') {
-        handleBrowserAction(action);
-    } else if (activeWindow === 'mail') {
-        handleMailAction(action);
-    } else if (activeWindow === 'pdf-viewer') {
-        handlePdfViewerAction(action);
+    const focusedInstance = ProgramManager.getFocusedInstance();
+    const baseId = focusedInstance ? focusedInstance.baseId : DEFAULT_APP;
+
+    // Route based on focused app type
+    if (baseId === 'terminal') {
+        handleTerminalAction(action, focusedInstance); // Pass instance
+    } else if (baseId === 'browser') {
+        handleBrowserAction(action, focusedInstance); // Pass instance
+    } else if (baseId === 'mail') {
+        handleMailAction(action, focusedInstance); // Pass instance
+    } else if (baseId === 'pdf-viewer') {
+        handlePdfViewerAction(action, focusedInstance); // Pass instance
     } else {
-        // Common actions or desktop-specific actions
+        // Common/Desktop actions
         switch (action) {
-            case 'preferences':
-                showSettings();
-                break;
-            case 'show-terminal':
-                showApplication('terminal');
-                break;
-            case 'show-browser':
-                showApplication('browser');
-                break;
-            case 'show-mail':
-                showApplication('mail');
-                break;
-            case 'show-fileviewer':
-                showApplication('pdf-viewer');
-                break;
-            case 'minimize-window':
-                minimizeActiveWindow();
-                break;
-            case 'maximize-window':
-                maximizeActiveWindow();
-                break;
-            default:
-                console.log(`No handler for action: ${action}`);
-                break;
+            case 'preferences': ProgramManager.launch('settings')?.show(); break;
+            case 'show-terminal': ProgramManager.launch('terminal')?.show(); break;
+            case 'show-browser': ProgramManager.launch('browser')?.show(); break;
+            case 'show-mail': ProgramManager.launch('mail')?.show(); break; 
+            case 'show-fileviewer': ProgramManager.launch('pdf-viewer')?.show(); break;
+            case 'minimize-window': focusedInstance?.hide(); break; 
+            case 'maximize-window': focusedInstance?.windowManager?.toggleFullscreen(); break; 
+            case 'refresh-ui':
+                 refreshUserInterface();
+                 break;
+            // Handle 'new-file', 'new-folder' for desktop focus?
+            default: console.log(`No handler for action: ${action} with focus ${baseId}`); break;
         }
     }
 }
@@ -612,7 +524,7 @@ function handleMenuAction(action) {
  * Handle Terminal-specific actions
  * @param {string} action - The action to perform
  */
-function handleTerminalAction(action) {
+function handleTerminalAction(action, instance) {
     const terminal = document.getElementById('terminal');
     if (!terminal) return;
     
@@ -629,10 +541,7 @@ function handleTerminalAction(action) {
             if (commandInput) commandInput.focus();
             break;
         case 'close-terminal':
-            terminal.classList.add('minimized');
-            const dockIcon = document.getElementById('terminal-dock-icon');
-            if (dockIcon) dockIcon.classList.remove('active');
-            setActiveWindow(DEFAULT_APP);
+            instance?.hide();
             break;
     }
 }
@@ -641,14 +550,14 @@ function handleTerminalAction(action) {
  * Handle Browser-specific actions
  * @param {string} action - The action to perform
  */
-function handleBrowserAction(action) {
+function handleBrowserAction(action, instance) {
+    if (!instance) return;
     const browser = document.getElementById('browser');
     if (!browser) return;
     
     switch (action) {
         case 'reload-page':
-            const refreshButton = browser.querySelector('.refresh-button');
-            if (refreshButton) refreshButton.click();
+            instance.browserController?.navigateTo(instance.browserController?.currentUrl); // Example - needs better reload
             break;
     }
 }
@@ -657,7 +566,7 @@ function handleBrowserAction(action) {
  * Handle Mail-specific actions
  * @param {string} action - The action to perform
  */
-function handleMailAction(action) {
+function handleMailAction(action, instance) {
     const mail = document.getElementById('mail');
     if (!mail) return;
     
@@ -676,82 +585,8 @@ function handleMailAction(action) {
 /**
  * Handle PDF Viewer-specific actions
  */
-function handlePdfViewerAction(action) {
+function handlePdfViewerAction(action, instance) {
     console.log(`PDF Viewer action: ${action}`);
-}
-
-/**
- * Minimize the active window
- */
-function minimizeActiveWindow() {
-    if (!activeWindow || activeWindow === DEFAULT_APP) return;
-    
-    const window = document.getElementById(activeWindow);
-    if (window) {
-        window.classList.add('minimized');
-        
-        // Update dock icon
-        const dockIcon = document.getElementById(`${activeWindow}-dock-icon`);
-        if (dockIcon) dockIcon.classList.remove('active');
-        
-        // Set desktop as active
-        setActiveWindow(DEFAULT_APP);
-    }
-}
-
-/**
- * Maximize/restore the active window
- */
-function maximizeActiveWindow() {
-    if (!activeWindow || activeWindow === DEFAULT_APP) return;
-    
-    const window = document.getElementById(activeWindow);
-    if (window) {
-        window.classList.toggle('fullscreen');
-    }
-}
-
-/**
- * Show a specific application
- * @param {string} appId - ID of the application to show
- */
-function showApplication(appId) {
-    console.log(`Showing application: ${appId}`);
-    
-    // Check if a WindowManager instance exists for this app
-    if (window.windowManagers && window.windowManagers[appId]) {
-        // Use the WindowManager instance to show the window
-        window.windowManagers[appId].show();
-        return;
-    }
-    
-    // Fallback to direct DOM manipulation if no WindowManager is available
-    const element = document.getElementById(appId);
-    if (!element) {
-        console.error(`Application element not found: ${appId}`);
-        return;
-    }
-    
-    // Show the application window
-    element.classList.remove('minimized');
-    
-    // Set it as the active window
-    setActiveWindow(appId);
-    
-    // Update dock icon if it exists
-    const dockIcon = document.getElementById(`${appId}-dock-icon`);
-    if (dockIcon) {
-        dockIcon.classList.add('active');
-    }
-}
-
-/**
- * Show the About dialog
- * @deprecated - Now handled by AboutProgram class
- */
-function showAboutDialog() {
-    const aboutProgram = new AboutProgram();
-    aboutProgram.init();
 }
 
 /**
@@ -846,7 +681,7 @@ export function refreshUserInterface() {
     });
     
     // Re-update the active window state
-    updateMenus();
+    updateMenuBarForApp(DEFAULT_APP);
     
     console.log('UI refresh complete!');
 }

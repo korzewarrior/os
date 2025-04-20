@@ -1,31 +1,64 @@
 /* Terminal specific styles - now respects themes */
 .terminal-container {
-  /* Removed fixed width/height, let base styles handle */
-  background-color: var(--window-bg); /* Use theme variable */
-  color: var(--text-primary); /* Use theme variable */
+  /* Use theme variable for base background, but make it semi-transparent */
+  /* Example: If --window-bg is #fff (light) or #1e1e1e (dark), add alpha */
+  /* This requires knowing the typical light/dark bg colors or using JS */
+  /* Simpler approach: Use a semi-transparent overlay based on theme */
+  background-color: var(--terminal-bg, rgba(30, 30, 30, 0.75)); /* Default to dark transparent */
+  backdrop-filter: blur(12px); 
+  -webkit-backdrop-filter: blur(12px); 
+  border: 1px solid var(--terminal-border, rgba(255, 255, 255, 0.1));
+  color: var(--terminal-text-primary, #e0e0e0); /* Default to light text */
 }
 
-.terminal-container .terminal-header {
-  background-color: var(--window-header-bg); /* Use theme variable */
-  border-bottom: 1px solid var(--window-header-border); /* Use theme variable */
+/* Specific overrides for light theme */
+body:not(.dark-theme) .terminal-container {
+   background-color: var(--terminal-bg-light, rgba(248, 248, 248, 0.8)); 
+   border: 1px solid var(--terminal-border-light, rgba(0, 0, 0, 0.1));
+   color: var(--terminal-text-primary-light, #333);
 }
 
-.terminal-container .terminal-header .terminal-title {
-  color: var(--text-secondary); /* Use theme variable */
+.terminal-container .window-header {
+  /* Base transparent header */
+  background-color: var(--terminal-header-bg, rgba(50, 50, 50, 0.8));
+  border-bottom-color: var(--terminal-border, rgba(255, 255, 255, 0.1));
+  color: var(--terminal-text-primary, #e0e0e0);
+}
+
+body:not(.dark-theme) .terminal-container .window-header {
+  background-color: var(--terminal-header-bg-light, rgba(224, 224, 224, 0.85)); 
+  border-bottom-color: var(--terminal-border-light, rgba(0, 0, 0, 0.1));
+  color: var(--terminal-text-primary-light, #333);
+}
+
+.terminal-container .terminal-title {
+     color: inherit; /* Inherit from header */
 }
 
 .terminal-content {
-  padding: 15px;
+  /* Ensure content area is fully transparent */
+  background-color: transparent !important; 
+  color: inherit; /* Inherit dark text color from .terminal-container */
+  /* Keep other styles */
+  padding: 10px;
   height: calc(100% - var(--header-height-tall));
   overflow-y: auto;
-  background-color: var(--window-bg-alt); /* Use theme variable */
-  font-family: var(--font-monospace); /* Ensure monospaced font */
-  font-size: calc(var(--base-font-size) * 1.0); /* Consistent font size */
-  line-height: 1.5;
+  font-family: var(--font-monospace);
+  font-size: calc(var(--base-font-size) * 1.0);
+  line-height: 1.4;
 }
 
 .terminal-output {
-  margin-bottom: 15px;
+  margin-bottom: 5px;
+}
+
+/* Force dark text colors for prompt, input, output */
+.terminal-output p {
+  margin-top: 0;
+  margin-bottom: 3px;
+  display: block; /* Ensure paragraphs are displayed */
+  min-height: 1em; /* Ensure they take up at least line height */
+  color: inherit; 
 }
 
 .terminal-prompt {
@@ -34,7 +67,7 @@
 }
 
 .prompt-symbol {
-  color: var(--accent-color); /* Use theme accent color */
+  color: var(--accent-color); /* Use theme accent */
   margin-right: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -42,30 +75,41 @@
   max-width: 200px;
 }
 
-#command-input {
-  background: transparent;
-  border: none;
-  color: var(--text-primary); /* Use theme variable */
+/* Target the specific input class */
+.terminal-input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: inherit !important; /* Inherit text color from container */
   font-family: var(--font-monospace);
-  font-size: inherit; /* Inherit from .terminal-content */
+  font-size: inherit; 
   flex-grow: 1;
-  outline: none;
-}
-
-/* Terminal text styles - use variables */
-.terminal-container h2, 
-.terminal-container h3, 
-.terminal-container h4 {
-  color: var(--accent-color); /* Use theme accent */
+  padding: 0;
+  margin: 0;
 }
 
 .terminal-container strong {
-  color: var(--text-emphasis); /* Use a suitable emphasis color variable */
+  color: var(--text-emphasis); /* Use theme emphasis */
+}
+
+/* Style ls output */
+.ls-output span {
+  margin-right: 15px; /* Add spacing between items */
+  display: inline-block; /* Ensure margin applies correctly */
+  color: inherit;
+}
+
+.ls-output span.directory {
+  color: var(--accent-color); /* Theme accent for directory */
+}
+
+.ls-output span.executable {
+  color: var(--accent-color-success, #27ae60); /* Theme success/green */
 }
 
 /* Ensure ASCII art uses monospace and theme color */
 .ascii-art {
-  color: var(--text-secondary); /* Use theme variable */
+  color: var(--text-secondary); /* Theme secondary */
   line-height: 1.2;
   margin: 20px 0;
   font-family: var(--font-monospace);
@@ -411,7 +455,7 @@
   height: calc(100% - var(--header-height-tall));
   overflow-y: auto;
   background-color: var(--window-bg-alt);
-  padding: 20px;
+  padding: 0;
 }
 
 .send-button-inline svg {
@@ -440,15 +484,15 @@
     display: flex;
     align-items: center;
     padding: 5px 8px; 
-    background-color: #f0f0f0; 
-    border-bottom: 1px solid #ccc; 
+    background-color: var(--window-header-bg); /* Use theme variable */
+    border-bottom: 1px solid var(--window-header-border); /* Use theme variable */
     flex: 0 0 auto; 
 }
 
 .browser-display-area {
     flex: 1 1 auto; 
     overflow: hidden;
-    background-color: #fff; 
+    background-color: var(--window-bg-alt); /* Use theme variable (for when iframe doesn't load) */
     position: relative; /* Needed for absolute positioning of iframe */
     padding: 0; /* Ensure no padding */
     margin: 0; /* Ensure no margin */
@@ -474,3 +518,190 @@
 }
 
 /* ... rest of browser styles ... */ 
+
+/* --- Settings App --- */
+.settings-content {
+    display: flex;
+    height: 100%; /* Ensure it fills parent */
+    padding: 0; /* Override default content padding */
+}
+
+.settings-sidebar {
+    width: 180px; 
+    background-color: var(--sidebar-bg, #e8e8e8); 
+    padding: 15px 0;
+    flex-shrink: 0; 
+    border-right: 1px solid var(--window-border-color, #ccc);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* Change from flex-start to stretch items horizontally */
+}
+
+.settings-category {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px; /* Apply padding here */
+    cursor: pointer;
+    border-left: 3px solid transparent; 
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    flex-shrink: 0; 
+    width: 100%; /* Ensure it takes full available width */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.settings-category svg {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+}
+
+.settings-category:hover {
+    /* Apply hover to the full width */
+    background-color: var(--element-hover, #f0f0f0);
+}
+
+.settings-category.active {
+    /* Apply active style to the full width */
+    background-color: var(--element-selected-bg, #d8d8d8);
+    border-left-color: var(--accent-color, #007aff);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.settings-category.active svg {
+    opacity: 1.0;
+}
+
+.settings-panels {
+    flex-grow: 1; /* Allow panels area to take remaining space */
+    padding: 20px 30px;
+    overflow-y: auto; /* Allow scrolling if content exceeds height */
+}
+
+.settings-panel {
+    display: none; /* Hide inactive panels */
+}
+
+.settings-panel.active {
+    display: block; /* Show active panel */
+}
+
+.settings-group {
+    margin-bottom: 30px;
+}
+
+.settings-group h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--element-border);
+    padding-bottom: 5px;
+}
+
+/* ... styles for toggles, sliders, background options, about panel etc. ... */
+
+/* Ensure toggle switch looks okay */
+.toggle-label { display: flex; align-items: center; cursor: pointer; }
+.toggle-label span:first-child { margin-right: 10px; }
+.toggle-switch { /* Basic styles */ } 
+.toggle-slider { /* Basic styles */ } 
+
+/* ... browser-navigation ... */
+
+.browser-navigation .nav-button {
+    /* ... other styles ... */
+    color: var(--text-primary); /* Use theme variable */
+}
+
+.browser-navigation .nav-button:hover:not(:disabled) {
+    background-color: var(--element-hover); /* Use theme variable */
+}
+
+.browser-navigation .nav-button:disabled {
+    color: var(--text-muted); /* Use theme variable */
+    /* ... other styles ... */
+}
+
+.address-bar {
+     /* ... other styles ... */
+}
+
+#url-input {
+    /* ... other styles ... */
+    border: 1px solid var(--input-border-color, var(--element-border)); /* Use theme variable */
+    background-color: var(--input-bg, var(--window-bg-alt)); /* Use theme variable */
+    color: var(--text-primary); /* Use theme variable */
+}
+
+.browser-display-area {
+    /* ... other styles ... */
+    background-color: var(--window-bg-alt); /* Use theme variable (for when iframe doesn't load) */
+}
+
+/* Ensure bookmarks also use theme variables */
+.bookmark {
+    background-color: var(--button-bg, var(--element-bg));
+    color: var(--button-text, var(--text-primary));
+    /* ... other styles ... */
+}
+
+.bookmark:hover {
+    background-color: var(--button-hover-bg, var(--element-hover));
+}
+
+/* PDF Viewer specific styles */
+.pdf-viewer-content {
+    /* ... existing styles ... */
+    background-color: var(--window-bg-alt); /* Ensure content area bg follows theme */
+    padding: 0; /* Remove padding if content divs handle it */
+}
+
+.simulated-pdf-content, 
+.text-file-content {
+    padding: 20px; /* Add padding here */
+    background-color: var(--window-bg-alt); /* Use theme variable */
+    color: var(--text-primary); /* Use theme variable */
+    height: 100%; /* Try to fill container */
+    box-sizing: border-box;
+}
+
+/* Style headings within simulated PDFs */
+.simulated-pdf-content h1,
+.simulated-pdf-content h2,
+.simulated-pdf-content h3 {
+    color: var(--text-primary); /* Adjust as needed */
+    border-bottom: 1px solid var(--element-border);
+    padding-bottom: 5px;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+/* Style lists within simulated PDFs */
+.simulated-pdf-content ul {
+    list-style-type: disc;
+    padding-left: 30px;
+}
+
+.simulated-pdf-content li {
+    margin-bottom: 8px;
+}
+
+/* Style code/strong tags */
+.simulated-pdf-content strong {
+    color: var(--text-emphasis, var(--text-primary)); 
+    font-weight: 600;
+}
+
+.simulated-pdf-content code {
+    background-color: var(--element-bg);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: var(--font-monospace);
+}
+
+.text-file-content {
+     font-family: var(--font-monospace);
+     white-space: pre-wrap; /* Ensure wrapping */
+     word-break: break-all; /* Break long lines */
+} 
