@@ -184,7 +184,7 @@ async function loadAndSetupWallpapers() {
         }
         
         // Default wallpaper path
-        const defaultWallpaper = 'img/wallpapers/gradient.jpg';
+        const defaultWallpaper = 'img/wallpapers/fuji.png';
         
         // Get the saved background or use default
         const savedBg = localStorage.getItem('background') || defaultWallpaper;
@@ -507,7 +507,7 @@ class SettingsProgram extends Program {
         wallpaperContainer.innerHTML = ''; 
         try {
             const wallpapers = await getAvailableWallpapers();
-            const defaultWallpaper = 'img/wallpapers/gradient.jpg'; 
+            const defaultWallpaper = 'img/wallpapers/fuji.png'; // Changed default
             const savedBg = localStorage.getItem('background') || defaultWallpaper;
 
             wallpapers.forEach(wallpaper => {
@@ -534,6 +534,9 @@ class SettingsProgram extends Program {
              if (!wallpaperContainer.querySelector('.background-option.selected')) {
                  const defaultOption = wallpaperContainer.querySelector(`.background-option[data-bg="${defaultWallpaper}"]`);
                  if (defaultOption) defaultOption.classList.add('selected');
+                 // Ensure the default is applied if nothing was selected initially
+                 applyWallpaper(defaultWallpaper);
+                 localStorage.setItem('background', defaultWallpaper);
              }
         } catch (error) { console.error('Error loading wallpapers:', error); }
     }

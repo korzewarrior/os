@@ -64,12 +64,16 @@ export class TerminalProgram extends Program {
         this.outputElement.id = `output-${this.instanceId}`;
 
         this.setupInputHandling();
-        this.resetTerminal(); // Display initial welcome message
+        this.resetTerminal(); // Display initial welcome message & first prompt
         
-        // Focus input when shown
+        // Focus input when shown and ensure prompt is visible
         if (this.windowManager) {
              this.windowManager.addOnShowCallback(() => {
-                 setTimeout(() => this.inputElement?.focus(), 50);
+                 console.log(`[Terminal ${this.instanceId}] Show callback triggered.`);
+                 // Ensure prompt is updated after window is definitely shown
+                 this.updatePrompt(); 
+                 // Focus input slightly after ensuring prompt is set
+                 setTimeout(() => this.inputElement?.focus(), 50); 
              });
         }
         console.log(`[TerminalProgram ${this.instanceId}] Initialized.`);
@@ -185,7 +189,7 @@ export class TerminalProgram extends Program {
 
     resetTerminal() { 
         this.clearTerminal();
-        this.displaySystemInfo();
+        this.displaySystemInfo(); // Display the info block
     }
     
     getGpuInfo() {

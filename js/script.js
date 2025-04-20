@@ -107,7 +107,7 @@ function applyFontSize() {
  * Apply the user's wallpaper preference or default wallpaper
  */
 function applyWallpaper() {
-    const defaultWallpaper = 'img/wallpapers/gradient.jpg';
+    const defaultWallpaper = 'img/wallpapers/fuji.png';
     const savedWallpaper = localStorage.getItem('background') || defaultWallpaper;
     
     console.log('Applying wallpaper:', savedWallpaper);

@@ -278,6 +278,7 @@ class BrowserProgram extends Program {
                     <div class="bookmarks">
                         <div class="bookmark" data-url="https://korze.org">korze.org</div>
                         <div class="bookmark" data-url="https://leviathan.korze.org">Leviathan Game</div>
+                        <div class="bookmark" data-url="https://korzewarrior.github.io/better.game/">better.game</div>
                     </div>
                     <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
                         Note: Loading external sites may be blocked by the target website.
