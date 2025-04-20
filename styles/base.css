@@ -200,4 +200,52 @@ h4, .text-sm {
     width: 100%;
     z-index: 10000; /* Increase z-index significantly */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Glitch Easter Egg Styles --- */
+@keyframes glitch-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+@keyframes glitch-color-shift {
+  0%, 100% { filter: none; }
+  25% { filter: hue-rotate(90deg) saturate(2); }
+  50% { filter: invert(1) sepia(1); }
+  75% { filter: hue-rotate(-90deg) contrast(1.5); }
+}
+
+@keyframes glitch-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+body.system-glitch {
+  animation: glitch-shake 0.3s infinite linear, 
+             glitch-color-shift 0.8s infinite steps(1, end),
+             glitch-flicker 0.1s infinite linear;
+  overflow: hidden; /* Prevent scrollbars during glitch */
+}
+
+/* Style the final message */
+.glitch-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-monospace);
+    color: #ff0000; /* Red error color */
+    font-size: 4vw;
+    text-shadow: 2px 2px 0px #00ff00, -2px -2px 0px #0000ff;
+    animation: glitch-flicker 0.15s infinite linear;
+    text-align: center;
+    z-index: 99999; /* Ensure it's on top */
+}
+
+/* Optional: Glitch effect on existing elements before they hide */
+body.system-glitch .window-container,
+body.system-glitch .dock-container,
+body.system-glitch .menu-bar {
+    /* Add individual glitch elements here if desired before timeout */
 } 

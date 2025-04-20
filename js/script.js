@@ -15,6 +15,50 @@ import { initializeDebug, autoRepair } from './debug.js';
 window.Program = Program;
 window.ProgramManager = ProgramManager;
 
+// --- Easter Egg Glitch Function --- 
+window.triggerSystemGlitch = () => {
+    console.log("SYSTEM GLITCH ACTIVATED! Simulating full crash...");
+    const body = document.body;
+    body.classList.add('system-glitch'); // Start visual glitch
+
+    // --- Start removing elements after a short delay ---
+    setTimeout(() => {
+        console.log('Glitch: Removing UI elements...');
+        // Remove all window instances managed by ProgramManager
+        Object.keys(ProgramManager.activeInstances).forEach(instanceId => {
+            ProgramManager.close(instanceId); // Use close to potentially trigger destroy methods
+        });
+        // Hide dock and menu bar
+        document.querySelector('.dock-container')?.remove();
+        document.querySelector('.menu-bar')?.remove();
+        // Clear desktop icons
+        document.getElementById('desktop-files').innerHTML = '';
+
+        // Add a full screen overlay to prevent further interaction and show message
+        const crashOverlay = document.createElement('div');
+        crashOverlay.style.position = 'fixed';
+        crashOverlay.style.top = '0';
+        crashOverlay.style.left = '0';
+        crashOverlay.style.width = '100vw';
+        crashOverlay.style.height = '100vh';
+        crashOverlay.style.backgroundColor = 'rgba(0,0,0,0.9)'; // Dark overlay
+        crashOverlay.style.zIndex = '100000';
+        crashOverlay.style.display = 'flex';
+        crashOverlay.style.justifyContent = 'center';
+        crashOverlay.style.alignItems = 'center';
+        crashOverlay.innerHTML = '<h1 class="glitch-message">FATAL SYSTEM ERROR<br>korzeOS PANIC<br>[ REFRESH PAGE ]</h1>';
+        
+        body.appendChild(crashOverlay);
+        body.classList.remove('system-glitch'); // Stop visual glitch after overlay is shown
+
+    }, 750); // Shorter delay before the simulated "crash"
+
+    // Prevent any further input immediately?
+    // We could try preventing default on keydown temporarily,
+    // but the overlay should handle most interactions.
+};
+// ---------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing OS...');
     

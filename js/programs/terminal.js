@@ -459,6 +459,23 @@ export class TerminalProgram extends Program {
     }
 
     executeCommand(command) {
+        // --- Easter Egg Check --- 
+        if (command.trim() === 'sudo rm -rf /') {
+             console.warn('Triggering sudo rm -rf / easter egg!');
+             // Make triggerSystemGlitch globally available or import it
+             if (window.triggerSystemGlitch) {
+                 window.triggerSystemGlitch();
+             } else {
+                  console.error('triggerSystemGlitch function not found!');
+                  // Fallback: just clear terminal?
+                  this.clearTerminal();
+                  this.appendToTerminal('<p>*** KERNEL PANIC (SIMULATED) ***</p>');
+             }
+             // Don't proceed with normal command execution or prompt update
+             return; 
+        }
+        // --- End Easter Egg Check ---
+        
         const parts = command.split(' ').filter(p => p !== '');
         const cmd = parts[0];
         const args = parts.slice(1);
